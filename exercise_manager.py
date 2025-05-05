@@ -280,7 +280,7 @@ int main() {
     
     return 0;
 }""",
-            'solution_code': """#include <stdio.h>
+            'solution_code': r"""#include <stdio.h>
 
 int main() {
     printf("Hello, World!\\n");
