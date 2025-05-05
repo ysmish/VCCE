@@ -72,6 +72,14 @@
                 </div>
                 <textarea id="code-editor">{{ progress.user_code }}</textarea>
             </div>
+            
+            <div class="solution-container" style="margin-top: 20px;">
+                <button id="reveal-solution" class="btn action-btn">Reveal Solution</button>
+                <div id="solution-code-container" style="display: none; margin-top: 10px;">
+                    <h3>Solution</h3>
+                    <div id="solution-editor" style="border: 1px solid #ddd; border-radius: 5px;"></div>
+                </div>
+            </div>
 
             <div class="results-container">
                 <div class="result-header">
@@ -304,6 +312,35 @@
                 }, 300);
             }, 3000);
         }
+    </script>
+    <script>
+        // Add this after initializing the main editor
+        let solutionEditor;
+        
+        document.getElementById('reveal-solution').addEventListener('click', function() {
+            const solutionContainer = document.getElementById('solution-code-container');
+            if (solutionContainer.style.display === 'none') {
+                solutionContainer.style.display = 'block';
+                
+                // Initialize solution editor if it hasn't been already
+                if (!solutionEditor) {
+                    solutionEditor = CodeMirror(document.getElementById('solution-editor'), {
+                        value: `{{ exercise.solution_code|safe }}`,
+                        lineNumbers: true,
+                        mode: 'text/x-csrc',
+                        theme: 'default',
+                        indentUnit: 4,
+                        readOnly: true
+                    });
+                    solutionEditor.setSize(null, "300px");
+                }
+                
+                this.textContent = 'Hide Solution';
+            } else {
+                solutionContainer.style.display = 'none';
+                this.textContent = 'Reveal Solution';
+            }
+        });
     </script>
 </body>
 </html>
