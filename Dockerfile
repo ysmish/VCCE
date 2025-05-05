@@ -1,8 +1,8 @@
 # Use Python 3.9 as the base image
-FROM python:3.9.19-slim
+FROM python:3.9
 
 # Set working directory
-WORKDIR /VCCE
+WORKDIR /app
 
 # Copy requirements file and install dependencies
 COPY requirements.txt .
