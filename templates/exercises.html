@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Coding Exercises - Collaborative C Code Editor</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
+</head>
+<body>
+    <div class="header">
+        <h1>Collaborative C Code Editor</h1>
+        <div class="user-info">
+            <span id="current-username">{{ session.username }}</span>
+            <a href="{{ url_for('logout') }}" class="btn logout-btn">Logout</a>
+        </div>
+    </div>
+
+    <div class="exercises-container">
+        <div class="exercises-header">
+            <h2>C Programming Exercises</h2>
+            <a href="{{ url_for('dashboard') }}" class="btn back-btn">
+                <i class="fas fa-arrow-left"></i> Back to Dashboard
+            </a>
+        </div>
+
+        <div class="filters">
+            <div class="filter-group">
+                <label>Difficulty:</label>
+                <button class="filter-btn active" data-filter="all">All</button>
+                <button class="filter-btn" data-filter="easy">Easy</button>
+                <button class="filter-btn" data-filter="medium">Medium</button>
+                <button class="filter-btn" data-filter="hard">Hard</button>
+            </div>
+            <div class="filter-group">
+                <label>Status:</label>
+                <button class="filter-btn active" data-status="all">All</button>
+                <button class="filter-btn" data-status="not_started">Not Started</button>
+                <button class="filter-btn" data-status="in_progress">In Progress</button>
+                <button class="filter-btn" data-status="completed">Completed</button>
+            </div>
+        </div>
+
+        <div class="exercise-grid">
+            {% for exercise in exercises %}
+                {% set progress = progress_dict.get(exercise.id) %}
+                {% set status = progress.status if progress else 'not_started' %}
+                <div class="exercise-card" data-difficulty="{{ exercise.difficulty }}" data-status="{{ status }}">
+                    <div class="exercise-difficulty {{ exercise.difficulty }}">{{ exercise.difficulty }}</div>
+                    <h3>{{ exercise.title }}</h3>
+                    <p class="exercise-category">{{ exercise.category }}</p>
+                    <div class="exercise-status {{ status }}">
+                        {% if status == 'completed' %}
+                            <i class="fas fa-check-circle"></i> Completed
+                        {% elif status == 'in_progress' %}
+                            <i class="fas fa-spinner"></i> In Progress
+                        {% else %}
+                            <i class="fas fa-circle"></i> Not Started
+                        {% endif %}
+                    </div>
+                    <a href="{{ url_for('exercise', exercise_id=exercise.id) }}" class="btn start-btn">
+                        {% if status == 'completed' %}
+                            Review Solution
+                        {% elif status == 'in_progress' %}
+                            Continue
+                        {% else %}
+                            Start Exercise
+                        {% endif %}
+                    </a>
+                </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <script>
+        // Filter functionality
+        document.querySelectorAll('.filter-btn[data-filter]').forEach(button => {
+            button.addEventListener('click', function() {
+                // Update active state
+                document.querySelectorAll('.filter-btn[data-filter]').forEach(btn => {
+                    btn.classList.remove('active');
+                });
+                this.classList.add('active');
+                
+                const filter = this.getAttribute('data-filter');
+                const statusFilter = document.querySelector('.filter-btn[data-status].active').getAttribute('data-status');
+                
+                filterExercises(filter, statusFilter);
+            });
+        });
+
+        document.querySelectorAll('.filter-btn[data-status]').forEach(button => {
+            button.addEventListener('click', function() {
+                // Update active state
+                document.querySelectorAll('.filter-btn[data-status]').forEach(btn => {
+                    btn.classList.remove('active');
+                });
+                this.classList.add('active');
+                
+                const status = this.getAttribute('data-status');
+                const difficultyFilter = document.querySelector('.filter-btn[data-filter].active').getAttribute('data-filter');
+                
+                filterExercises(difficultyFilter, status);
+            });
+        });
+
+        function filterExercises(difficulty, status) {
+            document.querySelectorAll('.exercise-card').forEach(card => {
+                const cardDifficulty = card.getAttribute('data-difficulty');
+                const cardStatus = card.getAttribute('data-status');
+                
+                const matchesDifficulty = difficulty === 'all' || cardDifficulty === difficulty;
+                const matchesStatus = status === 'all' || cardStatus === status;
+                
+                if (matchesDifficulty && matchesStatus) {
+                    card.style.display = 'block';
+                } else {
+                    card.style.display = 'none';
+                }
+            });
+        }
+    </script>
+</body>
+</html>

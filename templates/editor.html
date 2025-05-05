@@ -1,0 +1,688 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ project.name }} - Collaborative C Code Editor</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.62.0/codemirror.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.62.0/codemirror.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.62.0/mode/clike/clike.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.62.0/addon/selection/mark-selection.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.62.0/addon/hint/show-hint.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.62.0/addon/hint/show-hint.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.62.0/addon/hint/anyword-hint.min.js"></script>
+</head>
+<body>
+    <div class="header">
+        <h1>{{ project.name }} <span class="project-subtitle">Collaborative C Code Editor</span></h1>
+        <div class="user-info">
+            <span id="current-username">{{ username }}</span>
+            <a href="{{ url_for('dashboard') }}" class="btn dashboard-btn">Dashboard</a>
+            <a href="{{ url_for('logout') }}" class="btn logout-btn">Logout</a>
+        </div>
+    </div>
+
+    <div class="main-container">
+        <div class="sidebar">
+            <div class="project-info">
+                <h3>Project Details</h3>
+                <div class="project-details">
+                    <p><strong>Owner:</strong> <span id="project-owner">{{ User.query.get(project.owner_id).username }}</span></p>
+                    <p><strong>Created:</strong> {{ project.created_at.strftime('%Y-%m-%d') }}</p>
+                    <p><strong>Last Updated:</strong> <span id="last-updated">{{ project.updated_at.strftime('%Y-%m-%d %H:%M') }}</span></p>
+                </div>
+                
+                {% if project.owner_id == session.user_id %}
+                <div class="collaborators-section">
+                    <h4>Invite Collaborator</h4>
+                    <form id="invite-form" action="{{ url_for('invite_collaborator', project_id=project.id) }}" method="post">
+                        <div class="form-group">
+                            <input type="text" id="collaborator-username" name="username" placeholder="Username" required>
+                        </div>
+                        <button type="submit" class="btn invite-btn">
+                            <i class="fas fa-user-plus"></i> Invite
+                        </button>
+                    </form>
+                </div>
+                {% endif %}
+            </div>
+            
+            <div class="active-users">
+                <h3>Connected Users</h3>
+                <ul id="users-list"></ul>
+            </div>
+            
+            <div class="chat-container">
+                <h3>Project Chat</h3>
+                <div id="chat-messages" class="chat-messages"></div>
+                <form id="chat-form" class="chat-form">
+                    <input type="text" id="chat-input" placeholder="Type a message..." required>
+                    <button type="submit" class="btn send-btn">
+                        <i class="fas fa-paper-plane"></i>
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <div class="content-container">
+            <div class="editor-container">
+                <div class="editor-options">
+                    <div class="language-info">
+                        <span>Language: C</span>
+                    </div>
+                    <div class="editor-actions">
+                        <button id="compile-button" class="btn action-btn compile-btn">
+                            <i class="fas fa-cogs"></i> Compile
+                        </button>
+                        <button id="run-button" class="btn action-btn run-btn">
+                            <i class="fas fa-play"></i> Run
+                        </button>
+                        <button id="save-button" class="btn action-btn save-btn">
+                            <i class="fas fa-save"></i> Save
+                        </button>
+                        <button id="toggle-results" class="btn action-btn">
+                            <i class="fas fa-columns"></i> Show Results
+                        </button>
+                    </div>
+                </div>
+                <textarea id="editor">{{ project.content }}</textarea>
+            </div>
+
+            <div class="results-container" style="display: none;">
+                <div class="result-header">
+                    <h3>Execution Results</h3>
+                </div>
+                <div id="output-tabs" class="output-tabs">
+                    <div class="tab active" data-tab="compile-output">Compilation</div>
+                    <div class="tab" data-tab="stdout-output">Standard Output</div>
+                    <div class="tab" data-tab="stderr-output">Standard Error</div>
+                </div>
+                <div id="result-panel" class="result-panel">
+                    <div id="loading-spinner" class="loading-spinner" style="display: none;">
+                        <div class="spinner"></div>
+                    </div>
+                    <div id="compile-output" class="output-content"></div>
+                    <div id="stdout-output" class="output-content" style="display: none;"></div>
+                    <div id="stderr-output" class="output-content" style="display: none;"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Global variables
+        let editor;
+        let socket;
+        let activeUsers = new Map();
+        let executionInProgress = false;
+        const projectId = "{{ project.id }}";
+        const currentUserId = "{{ session.user_id }}";
+        const currentUsername = "{{ username }}";
+        let userCursors = {};  // Store other users' cursor positions
+        let userColors = {};   // Store colors for each user
+
+        // Generate a color based on username
+        function generateUserColor(username) {
+            let hash = 0;
+            for (let i = 0; i < username.length; i++) {
+                hash = username.charCodeAt(i) + ((hash << 5) - hash);
+            }
+            
+            // Generate bright, distinct colors
+            const hue = hash % 360;
+            return `hsl(${hue}, 70%, 50%)`;
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeEditor();
+            initializeSocketConnection();
+            initializeUIEvents();
+        });
+
+        function initializeEditor() {
+            const editorElement = document.getElementById('editor');
+            
+            editor = CodeMirror.fromTextArea(editorElement, {
+                lineNumbers: true,
+                mode: 'text/x-csrc',
+                theme: 'default',
+                indentUnit: 4,
+                indentWithTabs: true,
+                lineWrapping: true,
+                autoCloseBrackets: true,
+                matchBrackets: true,
+                extraKeys: {
+                    "Ctrl-Enter": function() {
+                        runCode();
+                    },
+                    "Ctrl-S": function() {
+                        saveCode();
+                        return false;
+                    },
+                    "Ctrl-Space": "autocomplete"
+                }
+            });
+
+            editor.setSize(null, "80vh");
+
+            editor.on('change', function(instance, changeObj) {
+                if (changeObj.origin !== 'setValue' && changeObj.origin !== 'socket') {
+                    let operation;
+                    if (changeObj.origin === '+input' || changeObj.origin === 'paste') {
+                        operation = {
+                            type: 'insert',
+                            position: editor.indexFromPos(changeObj.from),
+                            text: changeObj.text.join('\n'),
+                            project_id: projectId
+                        };
+                    } else if (changeObj.origin === '+delete' || changeObj.origin === 'cut') {
+                        operation = {
+                            type: 'delete',
+                            position: editor.indexFromPos(changeObj.from),
+                            text: changeObj.removed.join('\n'),
+                            project_id: projectId
+                        };
+                    } else if (changeObj.origin === 'complete-reset') {
+                        operation = {
+                            type: 'replace',
+                            text: editor.getValue(),
+                            project_id: projectId
+                        };
+                    }
+
+                    if (operation) {
+                        socket.emit('edit', operation);
+                    }
+                }
+            });
+
+            // Track cursor position changes for collaborative editing
+            editor.on('cursorActivity', function() {
+                const cursor = editor.getCursor();
+                socket.emit('cursor_move', { 
+                    project_id: projectId,
+                    position: { line: cursor.line, ch: cursor.ch }
+                });
+            });
+        }
+
+        function initializeSocketConnection() {
+            socket = io({
+                query: {
+                    project_id: projectId
+                }
+            });
+
+            // Socket event handlers
+            socket.on('connect', onSocketConnect);
+            socket.on('document', onDocumentUpdate);
+            socket.on('user_connected', onUserConnected);
+            socket.on('user_disconnected', onUserDisconnected);
+            socket.on('all_users', onAllUsers);
+            socket.on('edit_error', onEditError);
+            socket.on('cursor_update', onCursorUpdate);
+            socket.on('new_chat_message', onNewChatMessage);
+        }
+
+        function initializeUIEvents() {
+            // Button click events
+            document.getElementById('run-button').addEventListener('click', runCode);
+            document.getElementById('compile-button').addEventListener('click', compileCode);
+            document.getElementById('save-button').addEventListener('click', saveCode);
+            document.getElementById('toggle-results').addEventListener('click', toggleResults);
+
+            // Tab switching
+            document.getElementById('output-tabs').addEventListener('click', function(e) {
+                if (e.target.classList.contains('tab')) {
+                    switchTab(e.target.getAttribute('data-tab'));
+                }
+            });
+
+            // Initialize first tab
+            document.querySelector('.tab.active').click();
+
+            // Chat form submission
+            document.getElementById('chat-form').addEventListener('submit', function(e) {
+                e.preventDefault();
+                sendChatMessage();
+            });
+        }
+
+        // Socket event handlers
+        function onSocketConnect() {
+            console.log('Connected to server');
+            
+            // Join project room
+            socket.emit('join_project', {
+                project_id: projectId
+            });
+        }
+
+        function onDocumentUpdate(data) {
+            const cursor = editor.getCursor();
+            const scrollInfo = editor.getScrollInfo();
+
+            editor.operation(() => {
+                editor.setValue(data.text);
+                editor.changeGeneration(true);
+            });
+
+            editor.setCursor(cursor);
+            editor.scrollTo(scrollInfo.left, scrollInfo.top);
+            
+            // Update last updated time
+            document.getElementById('last-updated').textContent = new Date().toLocaleString();
+        }
+
+        function onUserConnected(data) {
+            console.log('User connected:', data.username);
+            
+            // Generate a color for this user
+            if (!userColors[data.user_id]) {
+                userColors[data.user_id] = generateUserColor(data.username);
+            }
+            
+            activeUsers.set(data.sid, {
+                username: data.username,
+                user_id: data.user_id,
+                color: userColors[data.user_id],
+                isYou: data.user_id === currentUserId
+            });
+            
+            updateUsersList();
+            
+            // Show notification
+            if (data.user_id !== currentUserId) {
+                showNotification(`${data.username} joined the project`, 'info');
+            }
+        }
+
+        function onUserDisconnected(data) {
+            console.log('User disconnected:', data.username);
+            
+            if (activeUsers.has(data.sid)) {
+                const user = activeUsers.get(data.sid);
+                activeUsers.delete(data.sid);
+                
+                // Remove user cursor if exists
+                if (userCursors[data.sid]) {
+                    userCursors[data.sid].clear();
+                    delete userCursors[data.sid];
+                }
+                
+                updateUsersList();
+                
+                // Show notification
+                showNotification(`${data.username} left the project`, 'info');
+            }
+        }
+
+        function onAllUsers(data) {
+            console.log('Received all users:', data.users);
+            
+            // Clear existing users except current user
+            activeUsers.clear();
+            
+            // Add all users from the server
+            data.users.forEach(user => {
+                // Generate a color for this user if not already assigned
+                if (!userColors[user.user_id]) {
+                    userColors[user.user_id] = generateUserColor(user.username);
+                }
+                
+                activeUsers.set(user.sid, {
+                    username: user.username,
+                    user_id: user.user_id,
+                    color: userColors[user.user_id],
+                    isYou: user.user_id === currentUserId
+                });
+            });
+            
+            updateUsersList();
+        }
+
+        function onEditError(data) {
+            console.error('Edit error:', data.message);
+            showNotification('Synchronization error: ' + data.message, 'error');
+        }
+
+        function onCursorUpdate(data) {
+            // Skip if it's the current user's cursor
+            if (data.user_id === currentUserId) return;
+            
+            // Clear previous cursor marker for this user if it exists
+            if (userCursors[data.sid]) {
+                userCursors[data.sid].clear();
+            }
+            
+            // Get the user's color
+            const user = activeUsers.get(data.sid);
+            if (!user) return;
+            
+            const color = user.color;
+            
+            // Create a cursor element
+            const cursorElem = document.createElement('div');
+            cursorElem.className = 'remote-cursor';
+            cursorElem.style.backgroundColor = color;
+            cursorElem.style.borderLeft = `2px solid ${color}`;
+            
+            // Add username above cursor
+            const usernameElem = document.createElement('div');
+            usernameElem.className = 'remote-cursor-name';
+            usernameElem.style.backgroundColor = color;
+            usernameElem.textContent = user.username;
+            cursorElem.appendChild(usernameElem);
+            
+            // Create and store the cursor marker
+            userCursors[data.sid] = editor.setBookmark(
+                { line: data.position.line, ch: data.position.ch },
+                { widget: cursorElem }
+            );
+        }
+
+        function onNewChatMessage(data) {
+            const chatMessages = document.getElementById('chat-messages');
+            
+            const isOwnMessage = data.user_id === currentUserId;
+            
+            const messageElement = document.createElement('div');
+            messageElement.className = `chat-message ${isOwnMessage ? 'own-message' : ''}`;
+            
+            // Message header with username and time
+            const messageHeader = document.createElement('div');
+            messageHeader.className = 'message-header';
+            
+            const usernameSpan = document.createElement('span');
+            usernameSpan.className = 'message-username';
+            usernameSpan.textContent = data.username;
+            usernameSpan.style.color = userColors[data.user_id] || '#666';
+            
+            const timeSpan = document.createElement('span');
+            timeSpan.className = 'message-time';
+            const messageTime = new Date(data.timestamp);
+            timeSpan.textContent = messageTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            
+            messageHeader.appendChild(usernameSpan);
+            messageHeader.appendChild(timeSpan);
+            
+            // Message content
+            const messageContent = document.createElement('div');
+            messageContent.className = 'message-content';
+            messageContent.textContent = data.message;
+            
+            messageElement.appendChild(messageHeader);
+            messageElement.appendChild(messageContent);
+            
+            chatMessages.appendChild(messageElement);
+            
+            // Scroll to bottom
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+            
+            // Show notification if tab is not active
+            if (document.hidden && !isOwnMessage) {
+                const notification = new Notification('New message', {
+                    body: `${data.username}: ${data.message}`,
+                    icon: '/static/favicon.ico'
+                });
+            }
+        }
+
+        // UI Functions
+        function updateUsersList() {
+            const usersList = document.getElementById('users-list');
+            usersList.innerHTML = '';
+            
+            activeUsers.forEach((user, sid) => {
+                const li = document.createElement('li');
+                li.textContent = user.username + (user.isYou ? ' (you)' : '');
+                li.className = user.isYou ? 'current-user' : '';
+                
+                // Add colored dot indicator
+                const statusDot = document.createElement('span');
+                statusDot.className = 'status-dot';
+                statusDot.style.backgroundColor = user.color;
+                li.prepend(statusDot);
+                
+                usersList.appendChild(li);
+            });
+        }
+
+        function switchTab(tabId) {
+            document.querySelectorAll('.tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            document.querySelector(`[data-tab="${tabId}"]`).classList.add('active');
+            
+            document.querySelectorAll('.output-content').forEach(content => {
+                content.style.display = 'none';
+            });
+            document.getElementById(tabId).style.display = 'block';
+        }
+
+        function toggleResults() {
+            const resultsContainer = document.querySelector('.results-container');
+            const editorContainer = document.querySelector('.editor-container');
+            const toggleButton = document.getElementById('toggle-results');
+            
+            if (resultsContainer.style.display === 'none') {
+                resultsContainer.style.display = 'flex';
+                editorContainer.style.width = '60%';
+                toggleButton.innerHTML = '<i class="fas fa-columns"></i> Hide Results';
+            } else {
+                resultsContainer.style.display = 'none';
+                editorContainer.style.width = '100%';
+                toggleButton.innerHTML = '<i class="fas fa-columns"></i> Show Results';
+            }
+        }
+
+        function sendChatMessage() {
+            const chatInput = document.getElementById('chat-input');
+            const message = chatInput.value.trim();
+            
+            if (message) {
+                socket.emit('chat_message', {
+                    project_id: projectId,
+                    message: message
+                });
+                
+                chatInput.value = '';
+            }
+        }
+
+        // Code execution functions
+        function runCode() {
+            if (executionInProgress) return;
+            executionInProgress = true;
+
+            const code = editor.getValue();
+            const runButton = document.getElementById('run-button');
+            const compileButton = document.getElementById('compile-button');
+            
+            // Show results if hidden
+            if (document.querySelector('.results-container').style.display === 'none') {
+                toggleResults();
+            }
+            
+            // Clear output areas
+            document.getElementById('compile-output').textContent = '';
+            document.getElementById('stdout-output').textContent = '';
+            document.getElementById('stderr-output').textContent = '';
+            
+            // Update UI
+            runButton.disabled = true;
+            compileButton.disabled = true;
+            runButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Running...';
+            document.getElementById('loading-spinner').style.display = 'block';
+
+            // Send to server
+            fetch('/execute_code', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ 
+                    code: code,
+                    project_id: projectId
+                }),
+            })
+            .then(response => response.json())
+            .then(data => {
+                document.getElementById('loading-spinner').style.display = 'none';
+
+                if (data.success) {
+                    document.getElementById('stdout-output').textContent = data.stdout || 'Program executed with no output.';
+                    document.getElementById('stderr-output').textContent = data.stderr || '';
+
+                    switchTab('stdout-output');
+                    showNotification('Code executed successfully', 'success');
+                } else {
+                    if (data.stage === 'compilation') {
+                        document.getElementById('compile-output').textContent = data.output || 'Compilation failed with no output.';
+                        switchTab('compile-output');
+                        showNotification('Compilation failed', 'error');
+                    } else {
+                        document.getElementById('stderr-output').textContent = data.output || 'Execution failed with no output.';
+                        switchTab('stderr-output');
+                        showNotification('Execution failed', 'error');
+                    }
+                }
+            })
+            .catch(error => {
+                document.getElementById('loading-spinner').style.display = 'none';
+                document.getElementById('stderr-output').textContent = 'Error: ' + error.message;
+                switchTab('stderr-output');
+                showNotification('Request failed', 'error');
+            })
+            .finally(() => {
+                runButton.disabled = false;
+                compileButton.disabled = false;
+                runButton.innerHTML = '<i class="fas fa-play"></i> Run';
+                executionInProgress = false;
+            });
+        }
+
+        function compileCode() {
+            if (executionInProgress) return;
+            executionInProgress = true;
+
+            const code = editor.getValue();
+            const compileButton = document.getElementById('compile-button');
+            const runButton = document.getElementById('run-button');
+            
+            // Show results if hidden
+            if (document.querySelector('.results-container').style.display === 'none') {
+                toggleResults();
+            }
+            
+            // Clear output areas
+            document.getElementById('compile-output').textContent = '';
+            
+            // Update UI
+            compileButton.disabled = true;
+            runButton.disabled = true;
+            compileButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Compiling...';
+            document.getElementById('loading-spinner').style.display = 'block';
+
+            // Send to server
+            fetch('/execute_code', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ 
+                    code: code,
+                    project_id: projectId,
+                    compile_only: true
+                }),
+            })
+            .then(response => response.json())
+            .then(data => {
+                document.getElementById('loading-spinner').style.display = 'none';
+                
+                if (data.success || data.stage === 'execution') {
+                    document.getElementById('compile-output').textContent = 'Compilation successful.';
+                    switchTab('compile-output');
+                    showNotification('Compilation successful', 'success');
+                } else {
+                    document.getElementById('compile-output').textContent = data.output || 'Compilation failed with no output.';
+                    switchTab('compile-output');
+                    showNotification('Compilation failed', 'error');
+                }
+            })
+            .catch(error => {
+                document.getElementById('loading-spinner').style.display = 'none';
+                document.getElementById('compile-output').textContent = 'Error: ' + error.message;
+                switchTab('compile-output');
+                showNotification('Request failed', 'error');
+            })
+            .finally(() => {
+                compileButton.disabled = false;
+                runButton.disabled = false;
+                compileButton.innerHTML = '<i class="fas fa-cogs"></i> Compile';
+                executionInProgress = false;
+            });
+        }
+
+        function saveCode() {
+            const code = editor.getValue();
+            const saveButton = document.getElementById('save-button');
+            
+            // Update UI
+            saveButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
+            saveButton.disabled = true;
+            
+            // Send to server
+            fetch(`/api/projects/${projectId}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ 
+                    content: code,
+                    save: true
+                }),
+            })
+            .then(response => response.json())
+            .then(data => {
+                document.getElementById('last-updated').textContent = new Date(data.updated_at).toLocaleString();
+                showNotification('Project saved successfully', 'success');
+            })
+            .catch(error => {
+                showNotification('Error saving project: ' + error.message, 'error');
+            })
+            .finally(() => {
+                saveButton.innerHTML = '<i class="fas fa-save"></i> Save';
+                saveButton.disabled = false;
+            });
+        }
+
+        function showNotification(message, type) {
+            const notification = document.createElement('div');
+            notification.className = `notification ${type}`;
+            notification.textContent = message;
+
+            document.body.appendChild(notification);
+
+            setTimeout(() => {
+                notification.classList.add('show');
+            }, 10);
+
+            setTimeout(() => {
+                notification.classList.remove('show');
+                setTimeout(() => {
+                    document.body.removeChild(notification);
+                }, 300);
+            }, 3000);
+        }
+        
+        // Request notification permission
+        if ('Notification' in window && Notification.permission !== 'granted' && Notification.permission !== 'denied') {
+            Notification.requestPermission();
+        }
+    </script>
+</body>
+</html>

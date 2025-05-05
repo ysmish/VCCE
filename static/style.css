@@ -44,6 +44,13 @@ body {
     font-size: 24px;
 }
 
+.project-subtitle {
+    font-size: 16px;
+    opacity: 0.8;
+    font-weight: normal;
+    margin-left: 10px;
+}
+
 .user-info {
     display: flex;
     align-items: center;
@@ -101,6 +108,14 @@ body {
     background-color: #c0392b;
 }
 
+.dashboard-btn {
+    background-color: #2ecc71;
+}
+
+.dashboard-btn:hover {
+    background-color: #27ae60;
+}
+
 .action-btn {
     padding: 8px 12px;
     font-size: 13px;
@@ -110,11 +125,86 @@ body {
     background-color: #3498db;
 }
 
+.compile-btn:hover {
+    background-color: #2980b9;
+}
+
 .run-btn {
     background-color: #2ecc71;
 }
 
 .run-btn:hover {
+    background-color: #27ae60;
+}
+
+.save-btn {
+    background-color: #f39c12;
+}
+
+.save-btn:hover {
+    background-color: #d35400;
+}
+
+.create-btn {
+    background-color: #9b59b6;
+}
+
+.create-btn:hover {
+    background-color: #8e44ad;
+}
+
+.invite-btn {
+    background-color: #1abc9c;
+    padding: 6px 12px;
+}
+
+.invite-btn:hover {
+    background-color: #16a085;
+}
+
+.send-btn {
+    background-color: #3498db;
+    padding: 8px;
+    border-radius: 50%;
+    min-width: 36px;
+    height: 36px;
+}
+
+.send-btn:hover {
+    background-color: #2980b9;
+}
+
+.cancel-btn {
+    background-color: #95a5a6;
+}
+
+.cancel-btn:hover {
+    background-color: #7f8c8d;
+}
+
+.back-btn {
+    background-color: #7f8c8d;
+}
+
+.back-btn:hover {
+    background-color: #6c7a7d;
+}
+
+.view-all-btn {
+    background-color: #34495e;
+}
+
+.view-all-btn:hover {
+    background-color: #2c3e50;
+}
+
+.start-btn, .continue-btn {
+    background-color: #2ecc71;
+    width: 100%;
+    margin-top: 10px;
+}
+
+.start-btn:hover, .continue-btn:hover {
     background-color: #27ae60;
 }
 
@@ -166,19 +256,21 @@ body {
 
 /* Sidebar and Active Users Styles */
 .sidebar {
-    width: 250px;
+    width: 300px;
     background: linear-gradient(to bottom, #2c3e50, #34495e);
     color: white;
     padding: 20px;
     overflow-y: auto;
+    display: flex;
+    flex-direction: column;
     box-shadow: 2px 0 10px rgba(0, 0, 0, 0.1);
 }
 
-.active-users {
-    width: 100%;
+.project-info, .active-users, .chat-container {
+    margin-bottom: 25px;
 }
 
-.active-users h3 {
+.project-info h3, .active-users h3, .chat-container h3 {
     margin-bottom: 16px;
     padding-bottom: 10px;
     border-bottom: 1px solid #546d7e;
@@ -189,10 +281,54 @@ body {
     align-items: center;
 }
 
+.project-info h3:before {
+    content: "📁";
+    margin-right: 8px;
+    font-size: 20px;
+}
+
 .active-users h3:before {
     content: "👥";
     margin-right: 8px;
     font-size: 20px;
+}
+
+.chat-container h3:before {
+    content: "💬";
+    margin-right: 8px;
+    font-size: 20px;
+}
+
+.project-details p {
+    font-size: 14px;
+    margin-bottom: 8px;
+    color: #ecf0f1;
+}
+
+.collaborators-section {
+    margin-top: 20px;
+    background-color: rgba(255, 255, 255, 0.05);
+    padding: 15px;
+    border-radius: 6px;
+}
+
+.collaborators-section h4 {
+    margin-bottom: 10px;
+    font-size: 16px;
+    color: #ecf0f1;
+}
+
+#invite-form {
+    display: flex;
+    gap: 10px;
+}
+
+#invite-form input {
+    flex: 1;
+    padding: 8px 12px;
+    border-radius: 4px;
+    border: none;
+    font-size: 14px;
 }
 
 #users-list {
@@ -206,6 +342,8 @@ body {
     margin-bottom: 5px;
     background-color: rgba(255, 255, 255, 0.05);
     transition: background-color 0.2s;
+    display: flex;
+    align-items: center;
 }
 
 #users-list li:hover {
@@ -217,6 +355,93 @@ body {
     color: #3498db;
     background-color: rgba(52, 152, 219, 0.15);
     border-left: 3px solid #3498db;
+}
+
+.status-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    margin-right: 8px;
+    display: inline-block;
+}
+
+/* Chat Styles */
+.chat-container {
+    display: flex;
+    flex-direction: column;
+    flex-grow: 1;
+    min-height: 200px;
+}
+
+.chat-messages {
+    flex-grow: 1;
+    overflow-y: auto;
+    margin-bottom: 15px;
+    background-color: rgba(255, 255, 255, 0.05);
+    border-radius: 8px;
+    padding: 15px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    min-height: 200px;
+    max-height: 300px;
+}
+
+.chat-message {
+    padding: 10px;
+    border-radius: 8px;
+    background-color: rgba(255, 255, 255, 0.1);
+    align-self: flex-start;
+    max-width: 80%;
+}
+
+.chat-message.own-message {
+    background-color: rgba(52, 152, 219, 0.3);
+    align-self: flex-end;
+}
+
+.message-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 5px;
+    font-size: 12px;
+}
+
+.message-username {
+    font-weight: bold;
+}
+
+.message-time {
+    opacity: 0.8;
+}
+
+.message-content {
+    word-break: break-word;
+}
+
+.chat-form {
+    display: flex;
+    gap: 10px;
+}
+
+#chat-input {
+    flex: 1;
+    padding: 10px;
+    border: none;
+    border-radius: 20px;
+    background-color: rgba(255, 255, 255, 0.1);
+    color: white;
+    font-size: 14px;
+}
+
+#chat-input::placeholder {
+    color: rgba(255, 255, 255, 0.5);
+}
+
+#chat-input:focus {
+    outline: none;
+    background-color: rgba(255, 255, 255, 0.2);
 }
 
 /* Results Panel Styles */
@@ -313,6 +538,26 @@ body {
     to { transform: rotate(360deg); }
 }
 
+/* Remote cursor styles */
+.remote-cursor {
+    position: relative;
+    display: inline-block;
+    width: 2px;
+    height: 18px;
+    z-index: 3;
+}
+
+.remote-cursor-name {
+    position: absolute;
+    top: -20px;
+    left: 0;
+    font-size: 12px;
+    padding: 2px 6px;
+    border-radius: 3px;
+    white-space: nowrap;
+    color: white;
+}
+
 /* Notification styles */
 .notification {
     position: fixed;
@@ -339,6 +584,10 @@ body {
 
 .notification.success {
     background-color: #2ecc71;
+}
+
+.notification.info {
+    background-color: #3498db;
 }
 
 /* Auth styles */
@@ -430,22 +679,432 @@ body {
     text-align: center;
 }
 
-/* Add responsive design */
+/* Dashboard styles */
+.dashboard-container {
+    padding: 30px;
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+.dashboard-section {
+    margin-bottom: 40px;
+    background-color: white;
+    border-radius: 10px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+    padding: 25px;
+}
+
+.section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    padding-bottom: 15px;
+    border-bottom: 1px solid #eee;
+}
+
+.section-header h2 {
+    font-size: 22px;
+    color: #2c3e50;
+    font-weight: 600;
+}
+
+.project-list, .exercise-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 20px;
+}
+
+.project-card {
+    background-color: #f8f9fa;
+    border-radius: 8px;
+    padding: 20px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+    transition: transform 0.3s, box-shadow 0.3s;
+}
+
+.project-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+}
+
+.project-info h3 {
+    font-size: 18px;
+    margin-bottom: 10px;
+    color: #2c3e50;
+}
+
+.project-info p {
+    font-size: 14px;
+    color: #7f8c8d;
+    margin-bottom: 5px;
+}
+
+.project-actions {
+    margin-top: 15px;
+    display: flex;
+    justify-content: flex-end;
+}
+
+.exercise-card {
+    background-color: #f8f9fa;
+    border-radius: 8px;
+    padding: 20px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+    transition: transform 0.3s, box-shadow 0.3s;
+    position: relative;
+}
+
+.exercise-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+}
+
+.exercise-difficulty {
+    position: absolute;
+    top: 15px;
+    right: 15px;
+    padding: 3px 8px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: bold;
+    color: white;
+}
+
+.exercise-difficulty.easy {
+    background-color: #2ecc71;
+}
+
+.exercise-difficulty.medium {
+    background-color: #f39c12;
+}
+
+.exercise-difficulty.hard {
+    background-color: #e74c3c;
+}
+
+.exercise-info h3 {
+    font-size: 18px;
+    margin-bottom: 10px;
+    color: #2c3e50;
+    padding-right: 60px; /* Make room for difficulty badge */
+}
+
+.exercise-category {
+    display: inline-block;
+    background-color: #edf2f7;
+    padding: 3px 8px;
+    border-radius: 12px;
+    font-size: 12px;
+    color: #2c3e50;
+    margin-bottom: 10px;
+}
+
+.exercise-status {
+    font-size: 14px;
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.exercise-status.not_started {
+    color: #7f8c8d;
+}
+
+.exercise-status.in_progress {
+    color: #f39c12;
+}
+
+.exercise-status.completed {
+    color: #2ecc71;
+}
+
+.exercise-actions {
+    margin-top: 15px;
+}
+
+.no-items {
+    grid-column: 1 / -1;
+    text-align: center;
+    color: #7f8c8d;
+    font-style: italic;
+    padding: 20px;
+}
+
+/* Form container styles */
+.form-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: calc(100vh - 70px);
+    padding: 30px;
+}
+
+.form-card {
+    background-color: white;
+    border-radius: 10px;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+    padding: 30px;
+    width: 100%;
+    max-width: 500px;
+}
+
+.form-card h2 {
+    margin-bottom: 24px;
+    color: #2c3e50;
+    font-size: 24px;
+    font-weight: 600;
+}
+
+.form-buttons {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 30px;
+}
+
+/* Exercise page specific styles */
+.exercises-container {
+    padding: 30px;
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+.exercises-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 25px;
+}
+
+.exercises-header h2 {
+    font-size: 24px;
+    color: #2c3e50;
+    font-weight: 600;
+}
+
+.filters {
+    display: flex;
+    margin-bottom: 25px;
+    background-color: white;
+    border-radius: 8px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+    padding: 15px;
+    gap: 25px;
+}
+
+.filter-group {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.filter-group label {
+    font-weight: 500;
+    color: #2c3e50;
+}
+
+.filter-btn {
+    padding: 5px 10px;
+    border: none;
+    border-radius: 4px;
+    background-color: #ecf0f1;
+    color: #7f8c8d;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+.filter-btn:hover {
+    background-color: #d5dbdb;
+}
+
+.filter-btn.active {
+    background-color: #3498db;
+    color: white;
+}
+
+.exercise-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 20px;
+}
+
+/* Individual exercise page styles */
+.exercise-editor-container {
+    display: flex;
+    height: calc(100vh - 70px);
+    overflow: hidden;
+}
+
+.exercise-sidebar {
+    width: 350px;
+    background: linear-gradient(to bottom, #2c3e50, #34495e);
+    color: white;
+    padding: 20px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 2px 0 10px rgba(0, 0, 0, 0.1);
+}
+
+.exercise-info {
+    margin-bottom: 30px;
+}
+
+.exercise-info h2 {
+    font-size: 24px;
+    margin-bottom: 15px;
+    color: #ecf0f1;
+}
+
+.exercise-meta {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 20px;
+}
+
+.exercise-meta .difficulty, 
+.exercise-meta .category {
+    display: inline-block;
+    padding: 4px 10px;
+    border-radius: 15px;
+    font-size: 12px;
+    font-weight: bold;
+}
+
+.exercise-meta .difficulty {
+    color: white;
+}
+
+.exercise-meta .category {
+    background-color: rgba(255, 255, 255, 0.1);
+    color: #ecf0f1;
+}
+
+.description {
+    background-color: rgba(255, 255, 255, 0.05);
+    padding: 15px;
+    border-radius: 8px;
+    font-size: 14px;
+    line-height: 1.6;
+}
+
+.exercise-progress {
+    margin-top: auto;
+    background-color: rgba(255, 255, 255, 0.05);
+    padding: 15px;
+    border-radius: 8px;
+}
+
+.progress-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+}
+
+.progress-header h3 {
+    font-size: 18px;
+    color: #ecf0f1;
+}
+
+.progress-header .status {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 14px;
+    padding: 4px 10px;
+    border-radius: 15px;
+    background-color: rgba(255, 255, 255, 0.1);
+}
+
+.progress-header .status.completed {
+    background-color: rgba(46, 204, 113, 0.3);
+    color: #2ecc71;
+}
+
+.progress-header .status.in_progress {
+    background-color: rgba(243, 156, 18, 0.3);
+    color: #f39c12;
+}
+
+.progress-header .status.not_started {
+    background-color: rgba(189, 195, 199, 0.3);
+    color: #bdc3c7;
+}
+
+.progress-details {
+    margin-bottom: 20px;
+    font-size: 14px;
+    color: #ecf0f1;
+}
+
+.progress-details p {
+    margin-bottom: 5px;
+}
+
+.action-buttons {
+    display: flex;
+    gap: 10px;
+}
+
+.exercise-editor {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.test-results-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 10px;
+}
+
+.test-results-table th, 
+.test-results-table td {
+    padding: 8px 12px;
+    text-align: left;
+    border-bottom: 1px solid #333;
+}
+
+.test-results-table th {
+    background-color: #2c3e50;
+    color: white;
+}
+
+.test-results-table tr.passed td.status {
+    color: #2ecc71;
+}
+
+.test-results-table tr.failed td.status {
+    color: #e74c3c;
+}
+
+.test-results-table tr.timeout td.status {
+    color: #f39c12;
+}
+
+/* Responsive design */
 @media (max-width: 1200px) {
     .sidebar {
-        width: 200px;
+        width: 250px;
+    }
+    
+    .exercise-sidebar {
+        width: 300px;
     }
 }
 
 @media (max-width: 992px) {
-    .main-container {
+    .main-container, .exercise-editor-container {
         flex-direction: column;
         height: auto;
     }
 
-    .sidebar {
+    .sidebar, .exercise-sidebar {
         width: 100%;
-        max-height: 200px;
+        max-height: none;
     }
 
     .content-container {
@@ -459,5 +1118,32 @@ body {
 
     .CodeMirror {
         height: 400px;
+    }
+    
+    .chat-messages {
+        max-height: 200px;
+    }
+}
+
+@media (max-width: 768px) {
+    .header {
+        flex-direction: column;
+        height: auto;
+        padding: 15px;
+        gap: 10px;
+    }
+    
+    .user-info {
+        width: 100%;
+        justify-content: center;
+    }
+    
+    .project-list, .exercise-list, .exercise-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .filters {
+        flex-direction: column;
+        gap: 15px;
     }
 }
