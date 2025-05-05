@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Collaborative C Code Editor</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.62.0/codemirror.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.62.0/codemirror.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.62.0/mode/clike/clike.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
+</head>
+<body>
+    <div class="header">
+        <h1>Collaborative C Code Editor</h1>
+        <div class="user-info">
+            <span id="current-username">{{ username }}</span>
+            <a href="{{ url_for('logout') }}" class="btn logout-btn">Logout</a>
+        </div>
+    </div>
+
+    <div class="main-container">
+        <div class="sidebar">
+            <div class="active-users">
+                <h3>Connected Users</h3>
+                <ul id="users-list">
+                </ul>
+            </div>
+        </div>
+
+        <div class="content-container">
+            <div class="editor-container">
+                <div class="editor-options">
+                    <div class="language-info">
+                        <span>Language: C</span>
+                    </div>
+                    <div class="editor-actions">
+                        <button id="compile-button" class="btn action-btn compile-btn">
+                            <i class="fas fa-cogs"></i> Compile
+                        </button>
+                        <button id="run-button" class="btn action-btn run-btn">
+                            <i class="fas fa-play"></i> Run
+                        </button>
+                        <button id="toggle-results" class="btn action-btn">
+                            <i class="fas fa-columns"></i> Show Results
+                        </button>
+                    </div>
+                </div>
+                <textarea id="editor"></textarea>
+            </div>
+
+            <div class="results-container" style="display: none;">
+                <div class="result-header">
+                    <h3>Execution Results</h3>
+                </div>
+                <div id="output-tabs" class="output-tabs">
+                    <div class="tab" data-tab="compile-output">Compilation</div>
+                    <div class="tab" data-tab="stdout-output">Standard Output</div>
+                    <div class="tab" data-tab="stderr-output">Standard Error</div>
+                </div>
+                <div id="result-panel" class="result-panel">
+                    <div id="loading-spinner" class="loading-spinner" style="display: none;">
+                        <div class="spinner"></div>
+                    </div>
+                    <div id="compile-output" class="output-content"></div>
+                    <div id="stdout-output" class="output-content"></div>
+                    <div id="stderr-output" class="output-content"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
+</body>
+</html>

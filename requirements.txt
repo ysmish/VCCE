@@ -1,0 +1,6 @@
+Flask==2.3.3
+flask-socketio==5.1.1
+python-dotenv==0.19.0
+Flask-SQLAlchemy==2.5.1
+Flask-Bcrypt
+SQLAlchemy<2.0
