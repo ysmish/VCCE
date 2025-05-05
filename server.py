@@ -458,7 +458,7 @@ def execute_test_cases(code, test_cases_json):
             try:
                 execution_result = subprocess.run(
                     [exec_path],
-                    input=input_data.encode(),
+                    input=input_data,
                     capture_output=True,
                     text=True,
                     timeout=5
