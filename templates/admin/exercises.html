@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Exercise Management - Admin - Collaborative C Code Editor</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
+</head>
+<body>
+    <div class="header">
+        <h1>Admin Dashboard <span class="project-subtitle">Collaborative C Code Editor</span></h1>
+        <div class="user-info">
+            <span id="current-username">{{ session.username }}</span>
+            <a href="{{ url_for('dashboard') }}" class="btn dashboard-btn">User Dashboard</a>
+            <a href="{{ url_for('logout') }}" class="btn logout-btn">Logout</a>
+        </div>
+    </div>
+
+    <div class="admin-container">
+        <div class="admin-sidebar">
+            <div class="admin-nav">
+                <h3>Administration</h3>
+                <ul>
+                    <li><a href="{{ url_for('admin.index') }}"><i class="fas fa-tachometer-alt"></i> Dashboard</a></li>
+                    <li><a href="{{ url_for('admin.users') }}"><i class="fas fa-users"></i> Users</a></li>
+                    <li class="active"><a href="{{ url_for('admin.exercises') }}"><i class="fas fa-code"></i> Exercises</a></li>
+                    <li><a href="{{ url_for('admin.stats') }}"><i class="fas fa-chart-bar"></i> Statistics</a></li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="admin-content">
+            <div class="admin-header">
+                <h2>Exercise Management</h2>
+                <div class="admin-actions">
+                    <a href="{{ url_for('admin.new_exercise') }}" class="btn create-btn">
+                        <i class="fas fa-plus"></i> New Exercise
+                    </a>
+                    <div class="search-box">
+                        <input type="text" id="exercise-search" placeholder="Search exercises...">
+                        <button class="search-btn"><i class="fas fa-search"></i></button>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="admin-table-container">
+                <table class="admin-table exercises-table">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Title</th>
+                            <th>Difficulty</th>
+                            <th>Category</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for exercise in exercises %}
+                        <tr>
+                            <td>{{ exercise.id }}</td>
+                            <td>{{ exercise.title }}</td>
+                            <td>
+                                <span class="difficulty-badge {{ exercise.difficulty }}">
+                                    {{ exercise.difficulty }}
+                                </span>
+                            </td>
+                            <td>{{ exercise.category }}</td>
+                            <td class="actions">
+                                <a href="{{ url_for('admin.edit_exercise', exercise_id=exercise.id) }}" class="btn action-btn edit-btn">
+                                    <i class="fas fa-edit"></i>
+                                </a>
+                                <button class="btn action-btn delete-btn" data-id="{{ exercise.id }}" data-title="{{ exercise.title }}">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="5" class="text-center">No exercises found</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Delete Confirmation Modal -->
+    <div id="delete-modal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Confirm Deletion</h3>
+                <span class="close">&times;</span>
+            </div>
+            <div class="modal-body">
+                <p>Are you sure you want to delete the exercise "<span id="exercise-title"></span>"?</p>
+                <p class="warning">This action cannot be undone.</p>
+            </div>
+            <div class="modal-footer">
+                <button class="btn cancel-btn" id="cancel-delete">Cancel</button>
+                <form id="delete-form" method="post" action="">
+                    <button type="submit" class="btn delete-btn">Delete</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Search functionality
+        document.getElementById('exercise-search').addEventListener('input', function() {
+            const searchTerm = this.value.toLowerCase();
+            const rows = document.querySelectorAll('.exercises-table tbody tr');
+            
+            rows.forEach(row => {
+                const title = row.querySelector('td:nth-child(2)').textContent.toLowerCase();
+                const category = row.querySelector('td:nth-child(4)').textContent.toLowerCase();
+                
+                if (title.includes(searchTerm) || category.includes(searchTerm)) {
+                    row.style.display = '';
+                } else {
+                    row.style.display = 'none';
+                }
+            });
+        });
+        
+        // Delete modal functionality
+        const modal = document.getElementById('delete-modal');
+        const closeBtn = document.querySelector('.close');
+        const cancelBtn = document.getElementById('cancel-delete');
+        const deleteForm = document.getElementById('delete-form');
+        const exerciseTitle = document.getElementById('exercise-title');
+        
+        // Show modal when delete button is clicked
+        document.querySelectorAll('.delete-btn').forEach(button => {
+            button.addEventListener('click', function() {
+                const id = this.getAttribute('data-id');
+                const title = this.getAttribute('data-title');
+                
+                deleteForm.action = `{{ url_for('admin.delete_exercise', exercise_id=0) }}`.replace('0', id);
+                exerciseTitle.textContent = title;
+                modal.style.display = 'block';
+            });
+        });
+        
+        // Close modal
+        closeBtn.addEventListener('click', () => modal.style.display = 'none');
+        cancelBtn.addEventListener('click', () => modal.style.display = 'none');
+        
+        // Close modal when clicking outside
+        window.addEventListener('click', (event) => {
+            if (event.target == modal) {
+                modal.style.display = 'none';
+            }
+        });
+    </script>
+</body>
+</html>

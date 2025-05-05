@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Create New Exercise - Admin - Collaborative C Code Editor</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.62.0/codemirror.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.62.0/codemirror.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.62.0/mode/clike/clike.min.js"></script>
+</head>
+<body>
+    <div class="header">
+        <h1>Admin Dashboard <span class="project-subtitle">Collaborative C Code Editor</span></h1>
+        <div class="user-info">
+            <span id="current-username">{{ session.username }}</span>
+            <a href="{{ url_for('dashboard') }}" class="btn dashboard-btn">User Dashboard</a>
+            <a href="{{ url_for('logout') }}" class="btn logout-btn">Logout</a>
+        </div>
+    </div>
+
+    <div class="admin-container">
+        <div class="admin-sidebar">
+            <div class="admin-nav">
+                <h3>Administration</h3>
+                <ul>
+                    <li><a href="{{ url_for('admin.index') }}"><i class="fas fa-tachometer-alt"></i> Dashboard</a></li>
+                    <li><a href="{{ url_for('admin.users') }}"><i class="fas fa-users"></i> Users</a></li>
+                    <li class="active"><a href="{{ url_for('admin.exercises') }}"><i class="fas fa-code"></i> Exercises</a></li>
+                    <li><a href="{{ url_for('admin.stats') }}"><i class="fas fa-chart-bar"></i> Statistics</a></li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="admin-content">
+            <div class="admin-header">
+                <h2>Create New Exercise</h2>
+                <div class="admin-actions">
+                    <a href="{{ url_for('admin.exercises') }}" class="btn back-btn">
+                        <i class="fas fa-arrow-left"></i> Back to Exercises
+                    </a>
+                </div>
+            </div>
+            
+            <div class="exercise-form-container">
+                <form id="exercise-form" method="post" action="{{ url_for('admin.new_exercise') }}">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="title">Title</label>
+                            <input type="text" id="title" name="title" required>
+                        </div>
+                    </div>
+                    
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="difficulty">Difficulty</label>
+                            <select id="difficulty" name="difficulty" required>
+                                <option value="easy">Easy</option>
+                                <option value="medium">Medium</option>
+                                <option value="hard">Hard</option>
+                            </select>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="category">Category</label>
+                            <input type="text" id="category" name="category" required>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="description">Description (HTML allowed)</label>
+                        <textarea id="description" name="description" rows="5" required></textarea>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="initial_code">Initial Code</label>
+                        <textarea id="initial_code" name="initial_code"></textarea>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="solution_code">Solution Code</label>
+                        <textarea id="solution_code" name="solution_code" required></textarea>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="test_cases">Test Cases (JSON format)</label>
+                        <textarea id="test_cases" name="test_cases" rows="10" required></textarea>
+                        <div class="help-text">
+                            <p>Format: <code>[{"input": "...", "expected_output": "..."}, ...]</code></p>
+                            <p>Example: <code>[{"input": "5", "expected_output": "120"}, {"input": "0", "expected_output": "1"}]</code></p>
+                        </div>
+                    </div>
+                    
+                    <div class="form-actions">
+                        <button type="submit" class="btn create-btn">Create Exercise</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Initialize CodeMirror for code fields
+        const initialCodeEditor = CodeMirror.fromTextArea(document.getElementById('initial_code'), {
+            lineNumbers: true,
+            mode: 'text/x-csrc',
+            theme: 'default',
+            indentUnit: 4,
+            indentWithTabs: true,
+            lineWrapping: true
+        });
+        
+        const solutionCodeEditor = CodeMirror.fromTextArea(document.getElementById('solution_code'), {
+            lineNumbers: true,
+            mode: 'text/x-csrc',
+            theme: 'default',
+            indentUnit: 4,
+            indentWithTabs: true,
+            lineWrapping: true
+        });
+        
+        // Set default test cases
+        document.getElementById('test_cases').value = JSON.stringify([
+            { "input": "", "expected_output": "" }
+        ], null, 2);
+        
+        // Form submission
+        document.getElementById('exercise-form').addEventListener('submit', function(e) {
+            // Update CodeMirror textareas before submission
+            initialCodeEditor.save();
+            solutionCodeEditor.save();
+            
+            // Validate test cases JSON
+            try {
+                JSON.parse(document.getElementById('test_cases').value);
+            } catch (error) {
+                e.preventDefault();
+                alert('Error in test cases JSON format: ' + error.message);
+            }
+        });
+    </script>
+</body>
+</html>
