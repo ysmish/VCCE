@@ -10,6 +10,8 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_bcrypt import Bcrypt
 from dotenv import load_dotenv
 from models import User, Project, Document, Exercise, ExerciseProgress, CompilationHistory, ChatMessage, db, app
+from exercise_manager import create_sample_exercises
+from admin import admin_bp
 
 load_dotenv()
 
@@ -18,6 +20,7 @@ logging.basicConfig(level=logging.INFO)
 app.config['SECRET_KEY'] = os.getenv("SECRET_KEY", "INSECURE_DEFAULT_KEY")
 app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv("DATABASE_URL", 'sqlite:///site.db')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+app.register_blueprint(admin_bp)
 allowed_origins = os.getenv("ALLOWED_ORIGINS", "*")
 
 bcrypt = Bcrypt(app)
@@ -780,4 +783,5 @@ if __name__ == "__main__":
     print("Starting Collaborative Code Editor server...")
     with app.app_context():
         db.create_all()
+        create_sample_exercises()
     socketio.run(app, host="0.0.0.0", port=5001, debug=True)
