@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>User Management - Admin - Collaborative C Code Editor</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
+</head>
+<body>
+    <div class="header">
+        <h1>Admin Dashboard <span class="project-subtitle">Collaborative C Code Editor</span></h1>
+        <div class="user-info">
+            <span id="current-username">{{ session.username }}</span>
+            <a href="{{ url_for('dashboard') }}" class="btn dashboard-btn">User Dashboard</a>
+            <a href="{{ url_for('logout') }}" class="btn logout-btn">Logout</a>
+        </div>
+    </div>
+
+    <div class="admin-container">
+        <div class="admin-sidebar">
+            <div class="admin-nav">
+                <h3>Administration</h3>
+                <ul>
+                    <li><a href="{{ url_for('admin.index') }}"><i class="fas fa-tachometer-alt"></i> Dashboard</a></li>
+                    <li class="active"><a href="{{ url_for('admin.users') }}"><i class="fas fa-users"></i> Users</a></li>
+                    <li><a href="{{ url_for('admin.exercises') }}"><i class="fas fa-code"></i> Exercises</a></li>
+                    <li><a href="{{ url_for('admin.stats') }}"><i class="fas fa-chart-bar"></i> Statistics</a></li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="admin-content">
+            <div class="admin-header">
+                <h2>User Management</h2>
+                <div class="admin-actions">
+                    <div class="search-box">
+                        <input type="text" id="user-search" placeholder="Search users...">
+                        <button class="search-btn"><i class="fas fa-search"></i></button>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="admin-table-container">
+                <table class="admin-table users-table">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Username</th>
+                            <th>Email</th>
+                            <th>Created</th>
+                            <th>Projects</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for user in users %}
+                        <tr>
+                            <td>{{ user.id }}</td>
+                            <td>{{ user.username }}</td>
+                            <td>{{ user.email }}</td>
+                            <td>{{ user.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+                            <td>{{ user.owned_projects|length }}</td>
+                            <td class="actions">
+                                <button class="btn action-btn view-btn" data-id="{{ user.id }}">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                                <button class="btn action-btn reset-btn" data-id="{{ user.id }}">
+                                    <i class="fas fa-key"></i>
+                                </button>
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="6" class="text-center">No users found</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Search functionality
+        document.getElementById('user-search').addEventListener('input', function() {
+            const searchTerm = this.value.toLowerCase();
+            const rows = document.querySelectorAll('.users-table tbody tr');
+            
+            rows.forEach(row => {
+                const username = row.querySelector('td:nth-child(2)').textContent.toLowerCase();
+                const email = row.querySelector('td:nth-child(3)').textContent.toLowerCase();
+                
+                if (username.includes(searchTerm) || email.includes(searchTerm)) {
+                    row.style.display = '';
+                } else {
+                    row.style.display = 'none';
+                }
+            });
+        });
+        
+        // View button functionality
+        document.querySelectorAll('.view-btn').forEach(button => {
+            button.addEventListener('click', function() {
+                const userId = this.getAttribute('data-id');
+                // Implement view user details functionality
+                alert('View user ID: ' + userId);
+            });
+        });
+        
+        // Reset password button functionality
+        document.querySelectorAll('.reset-btn').forEach(button => {
+            button.addEventListener('click', function() {
+                const userId = this.getAttribute('data-id');
+                if (confirm('Are you sure you want to reset the password for this user?')) {
+                    // Implement password reset functionality
+                    alert('Password reset for user ID: ' + userId);
+                }
+            });
+        });
+    </script>
+</body>
+</html>
