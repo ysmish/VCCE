@@ -108,14 +108,21 @@ def dashboard():
         status='in_progress'
     ).join(Exercise).all()
     
+    # Get owner usernames for all projects
+    project_owners = {}
+    for project in owned_projects + collaborated_projects:
+        if project.owner_id not in project_owners:
+            owner = User.query.get(project.owner_id)
+            project_owners[project.owner_id] = owner.username if owner else "Unknown"
+    
     return render_template(
         'dashboard.html',
         username=user.username,
         owned_projects=owned_projects,
         collaborated_projects=collaborated_projects,
-        in_progress_exercises=in_progress_exercises
+        in_progress_exercises=in_progress_exercises,
+        project_owners=project_owners  # Pass owner usernames
     )
-
 
 @app.route("/project/new", methods=['GET', 'POST'])
 def new_project():
@@ -147,15 +154,19 @@ def project(project_id):
     user_id = session['user_id']
     project = Project.query.get_or_404(project_id)
     
+    # Get the owner's username directly
+    owner = User.query.get(project.owner_id)
+    
     # Check if user has access to this project
-    if project.owner_id != user_id and user not in project.collaborators:
+    if project.owner_id != user_id and user_id not in [u.id for u in project.collaborators]:
         flash('You do not have access to this project!', 'error')
         return redirect(url_for('dashboard'))
     
     return render_template(
         'editor.html',
         username=session.get('username'),
-        project=project
+        project=project,
+        owner_username=owner.username  # Pass the owner's username directly
     )
 
 
@@ -454,7 +465,7 @@ def execute_test_cases(code, test_cases_json):
             try:
                 execution_result = subprocess.run(
                     [exec_path],
-                    input=input_data.encode(),
+                    input=input_data,
                     capture_output=True,
                     text=True,
                     timeout=5
@@ -569,8 +580,8 @@ def handle_disconnect():
         username = connected_users[request.sid]['username']
         logging.info(f"User disconnected: {request.sid} ({username})")
         
-        # Find which project rooms the user was in
-        for room in socketio.server.manager.get_rooms(request.sid):
+        # Add the namespace parameter '/' here too
+        for room in socketio.server.manager.get_rooms(request.sid, '/'):
             if room.startswith("project_"):
                 project_id = room[8:]  # Remove "project_" prefix
                 
@@ -594,7 +605,8 @@ def handle_join_project(data):
         return
     
     # Leave current rooms (if any)
-    for room in socketio.server.manager.get_rooms(request.sid):
+    # Add the namespace parameter '/' here
+    for room in socketio.server.manager.get_rooms(request.sid, '/'):
         if room.startswith("project_"):
             leave_room(room)
     

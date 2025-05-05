@@ -56,7 +56,7 @@
                         <div class="project-card">
                             <div class="project-info">
                                 <h3>{{ project.name }}</h3>
-                                <p>Owner: {{ User.query.get(project.owner_id).username }}</p>
+                                <p>Owner: {{ project_owners[project.owner_id] }}</p>
                                 <p>Last updated: {{ project.updated_at.strftime('%Y-%m-%d %H:%M') }}</p>
                             </div>
                             <div class="project-actions">
