@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ exercise.title }} - C Programming Exercise</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.62.0/codemirror.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.62.0/codemirror.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.62.0/mode/clike/clike.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
+</head>
+<body>
+    <div class="header">
+        <h1>C Programming Exercise</h1>
+        <div class="user-info">
+            <span id="current-username">{{ session.username }}</span>
+            <a href="{{ url_for('logout') }}" class="btn logout-btn">Logout</a>
+        </div>
+    </div>
+
+    <div class="exercise-editor-container">
+        <div class="exercise-sidebar">
+            <div class="exercise-info">
+                <h2>{{ exercise.title }}</h2>
+                <div class="exercise-meta">
+                    <span class="difficulty {{ exercise.difficulty }}">{{ exercise.difficulty }}</span>
+                    <span class="category">{{ exercise.category }}</span>
+                </div>
+                <div class="description">
+                    {{ exercise.description | safe }}
+                </div>
+            </div>
+            <div class="exercise-progress">
+                <div class="progress-header">
+                    <h3>Your Progress</h3>
+                    <span class="status {{ progress.status }}">
+                        {% if progress.status == 'completed' %}
+                            <i class="fas fa-check-circle"></i> Completed
+                        {% elif progress.status == 'in_progress' %}
+                            <i class="fas fa-spinner"></i> In Progress
+                        {% else %}
+                            <i class="fas fa-circle"></i> Not Started
+                        {% endif %}
+                    </span>
+                </div>
+                <div class="progress-details">
+                    <p>Attempts: {{ progress.attempts }}</p>
+                    {% if progress.last_attempt %}
+                        <p>Last Attempt: {{ progress.last_attempt.strftime('%Y-%m-%d %H:%M') }}</p>
+                    {% endif %}
+                    {% if progress.completed_at %}
+                        <p>Completed: {{ progress.completed_at.strftime('%Y-%m-%d %H:%M') }}</p>
+                    {% endif %}
+                </div>
+                <div class="action-buttons">
+                    <a href="{{ url_for('exercises') }}" class="btn back-btn">
+                        <i class="fas fa-arrow-left"></i> Back to Exercises
+                    </a>
+                    <button id="run-button" class="btn action-btn run-btn">
+                        <i class="fas fa-play"></i> Run & Check
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div class="exercise-editor">
+            <div class="editor-container">
+                <div class="editor-header">
+                    <h3>Your Solution</h3>
+                </div>
+                <textarea id="code-editor">{{ progress.user_code }}</textarea>
+            </div>
+
+            <div class="results-container">
+                <div class="result-header">
+                    <h3>Execution Results</h3>
+                </div>
+                <div id="output-tabs" class="output-tabs">
+                    <div class="tab active" data-tab="compile-output">Compilation</div>
+                    <div class="tab" data-tab="results-output">Test Results</div>
+                </div>
+                <div id="result-panel" class="result-panel">
+                    <div id="loading-spinner" class="loading-spinner" style="display: none;">
+                        <div class="spinner"></div>
+                    </div>
+                    <div id="compile-output" class="output-content">Your code hasn't been compiled yet.</div>
+                    <div id="results-output" class="output-content" style="display: none;">Run your code to check against test cases.</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let editor;
+        let exerciseId = "{{ exercise.id }}";
+        
+        document.addEventListener('DOMContentLoaded', function() {
+            // Initialize CodeMirror editor
+            editor = CodeMirror.fromTextArea(document.getElementById('code-editor'), {
+                lineNumbers: true,
+                mode: 'text/x-csrc',
+                theme: 'default',
+                indentUnit: 4,
+                indentWithTabs: true,
+                lineWrapping: true,
+                autoCloseBrackets: true,
+                matchBrackets: true
+            });
+            
+            editor.setSize(null, "400px");
+            
+            // Tabs functionality
+            document.querySelectorAll('.tab').forEach(tab => {
+                tab.addEventListener('click', function() {
+                    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+                    this.classList.add('active');
+                    
+                    const tabId = this.getAttribute('data-tab');
+                    document.querySelectorAll('.output-content').forEach(content => {
+                        content.style.display = 'none';
+                    });
+                    document.getElementById(tabId).style.display = 'block';
+                });
+            });
+            
+            // Run button click handler
+            document.getElementById('run-button').addEventListener('click', submitSolution);
+        });
+        
+        function submitSolution() {
+            const code = editor.getValue();
+            const runButton = document.getElementById('run-button');
+            const loadingSpinner = document.getElementById('loading-spinner');
+            
+            // Disable button and show loading spinner
+            runButton.disabled = true;
+            runButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Running...';
+            loadingSpinner.style.display = 'block';
+            
+            // Clear output areas
+            document.getElementById('compile-output').textContent = '';
+            document.getElementById('results-output').textContent = '';
+            
+            // Submit to server
+            fetch(`/exercise/${exerciseId}/submit`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ code: code }),
+            })
+            .then(response => response.json())
+            .then(data => {
+                loadingSpinner.style.display = 'none';
+                
+                if (data.stage === 'compilation') {
+                    document.getElementById('compile-output').textContent = data.output || 'Compilation error with no output.';
+                    document.querySelector('[data-tab="compile-output"]').click();
+                    showNotification('Compilation failed', 'error');
+                } else if (data.stage === 'execution') {
+                    // Show test results
+                    const resultsOutput = document.getElementById('results-output');
+                    resultsOutput.innerHTML = ''; // Clear previous results
+                    
+                    // Create results table
+                    const table = document.createElement('table');
+                    table.className = 'test-results-table';
+                    
+                    // Add header row
+                    const headerRow = document.createElement('tr');
+                    ['Test Case', 'Status', 'Input', 'Expected Output', 'Actual Output'].forEach(header => {
+                        const th = document.createElement('th');
+                        th.textContent = header;
+                        headerRow.appendChild(th);
+                    });
+                    table.appendChild(headerRow);
+                    
+                    // Add result rows
+                    let allPassed = true;
+                    data.results.forEach(result => {
+                        const row = document.createElement('tr');
+                        row.className = result.status;
+                        
+                        // Test case number
+                        const cellNum = document.createElement('td');
+                        cellNum.textContent = result.test_case;
+                        row.appendChild(cellNum);
+                        
+                        // Status
+                        const cellStatus = document.createElement('td');
+                        cellStatus.className = 'status';
+                        if (result.status === 'passed') {
+                            cellStatus.innerHTML = '<i class="fas fa-check-circle"></i> Passed';
+                        } else if (result.status === 'timeout') {
+                            cellStatus.innerHTML = '<i class="fas fa-clock"></i> Timeout';
+                            allPassed = false;
+                        } else {
+                            cellStatus.innerHTML = '<i class="fas fa-times-circle"></i> Failed';
+                            allPassed = false;
+                        }
+                        row.appendChild(cellStatus);
+                        
+                        // Input
+                        const cellInput = document.createElement('td');
+                        cellInput.textContent = result.input || 'No input';
+                        row.appendChild(cellInput);
+                        
+                        // Expected output
+                        const cellExpected = document.createElement('td');
+                        cellExpected.textContent = result.expected || 'No expected output';
+                        row.appendChild(cellExpected);
+                        
+                        // Actual output
+                        const cellActual = document.createElement('td');
+                        cellActual.textContent = result.actual || 'No output';
+                        row.appendChild(cellActual);
+                        
+                        table.appendChild(row);
+                    });
+                    
+                    resultsOutput.appendChild(table);
+                    
+                    // Update UI based on results
+                    if (allPassed) {
+                        showNotification('All tests passed! Exercise completed.', 'success');
+                        
+                        // Update progress status UI
+                        document.querySelector('.status').className = 'status completed';
+                        document.querySelector('.status').innerHTML = '<i class="fas fa-check-circle"></i> Completed';
+                        
+                        // Add completion time
+                        const now = new Date();
+                        const formattedDate = now.toLocaleString();
+                        
+                        const progressDetails = document.querySelector('.progress-details');
+                        const completedElem = progressDetails.querySelector('p:last-child');
+                        if (completedElem && completedElem.textContent.startsWith('Completed:')) {
+                            completedElem.textContent = `Completed: ${formattedDate}`;
+                        } else {
+                            const newElem = document.createElement('p');
+                            newElem.textContent = `Completed: ${formattedDate}`;
+                            progressDetails.appendChild(newElem);
+                        }
+                    } else {
+                        showNotification('Some tests failed. Try again!', 'error');
+                    }
+                    
+                    document.querySelector('[data-tab="results-output"]').click();
+                } else {
+                    // Error case
+                    document.getElementById('compile-output').textContent = data.output || 'An error occurred.';
+                    document.querySelector('[data-tab="compile-output"]').click();
+                    showNotification('An error occurred', 'error');
+                }
+            })
+            .catch(error => {
+                loadingSpinner.style.display = 'none';
+                document.getElementById('compile-output').textContent = 'Error: ' + error.message;
+                document.querySelector('[data-tab="compile-output"]').click();
+                showNotification('Request failed', 'error');
+            })
+            .finally(() => {
+                // Re-enable button
+                runButton.disabled = false;
+                runButton.innerHTML = '<i class="fas fa-play"></i> Run & Check';
+                
+                // Update attempts count
+                const attemptsElem = document.querySelector('.progress-details p:first-child');
+                const currentAttempts = parseInt(attemptsElem.textContent.split(': ')[1]) + 1;
+                attemptsElem.textContent = `Attempts: ${currentAttempts}`;
+                
+                // Update last attempt time
+                const now = new Date();
+                const formattedDate = now.toLocaleString();
+                
+                const lastAttemptElem = document.querySelector('.progress-details p:nth-child(2)');
+                if (lastAttemptElem && lastAttemptElem.textContent.startsWith('Last Attempt:')) {
+                    lastAttemptElem.textContent = `Last Attempt: ${formattedDate}`;
+                } else {
+                    const newElem = document.createElement('p');
+                    newElem.textContent = `Last Attempt: ${formattedDate}`;
+                    document.querySelector('.progress-details').appendChild(newElem);
+                }
+            });
+        }
+        
+        function showNotification(message, type) {
+            const notification = document.createElement('div');
+            notification.className = `notification ${type}`;
+            notification.textContent = message;
+            
+            document.body.appendChild(notification);
+            
+            setTimeout(() => {
+                notification.classList.add('show');
+            }, 10);
+            
+            setTimeout(() => {
+                notification.classList.remove('show');
+                setTimeout(() => {
+                    document.body.removeChild(notification);
+                }, 300);
+            }, 3000);
+        }
+    </script>
+</body>
+</html>
