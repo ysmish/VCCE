@@ -147,15 +147,19 @@ def project(project_id):
     user_id = session['user_id']
     project = Project.query.get_or_404(project_id)
     
+    # Get the owner's username directly
+    owner = User.query.get(project.owner_id)
+    
     # Check if user has access to this project
-    if project.owner_id != user_id and user not in project.collaborators:
+    if project.owner_id != user_id and user_id not in [u.id for u in project.collaborators]:
         flash('You do not have access to this project!', 'error')
         return redirect(url_for('dashboard'))
     
     return render_template(
         'editor.html',
         username=session.get('username'),
-        project=project
+        project=project,
+        owner_username=owner.username  # Pass the owner's username directly
     )
 
 
