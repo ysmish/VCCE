@@ -1085,6 +1085,34 @@ body {
     color: #f39c12;
 }
 
+/* User input container styles */
+.input-container {
+    background-color: #f7f9fc;
+    padding: 15px;
+    border-top: 1px solid #e0e0e0;
+}
+
+.input-container label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 500;
+    color: #2c3e50;
+}
+
+.input-container textarea {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    font-family: 'Consolas', 'Monaco', monospace;
+    margin-bottom: 10px;
+    resize: vertical;
+}
+
+.input-container button {
+    margin-top: 5px;
+}
+
 /* Responsive design */
 @media (max-width: 1200px) {
     .sidebar {
