@@ -15,20 +15,22 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.62.0/addon/hint/show-hint.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.62.0/addon/hint/anyword-hint.min.js"></script>
     <style>
-        /* User input container styles */
+        /* Custom styles for the input container */
         .input-container {
             background-color: #f7f9fc;
             padding: 15px;
             border-top: 1px solid #e0e0e0;
+            margin-top: 10px;
+            border-radius: 0 0 5px 5px;
         }
-
+        
         .input-container label {
             display: block;
             margin-bottom: 8px;
             font-weight: 500;
             color: #2c3e50;
         }
-
+        
         .input-container textarea {
             width: 100%;
             padding: 10px;
@@ -37,10 +39,34 @@
             font-family: 'Consolas', 'Monaco', monospace;
             margin-bottom: 10px;
             resize: vertical;
+            min-height: 80px;
         }
-
-        .input-container button {
-            margin-top: 5px;
+        
+        /* Adjust results panel layout */
+        .result-panel {
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+        }
+        
+        .output-area {
+            flex: 1;
+            overflow: auto;
+            padding-bottom: 10px;
+        }
+        
+        /* Make sure panel heights are appropriate */
+        .results-container {
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+        }
+        
+        .output-content {
+            height: auto !important;
+            min-height: 150px;
+            max-height: 300px;
+            overflow-y: auto;
         }
     </style>
 </head>
@@ -129,13 +155,26 @@
                     <div class="tab" data-tab="stdout-output">Standard Output</div>
                     <div class="tab" data-tab="stderr-output">Standard Error</div>
                 </div>
+                
                 <div id="result-panel" class="result-panel">
                     <div id="loading-spinner" class="loading-spinner" style="display: none;">
                         <div class="spinner"></div>
                     </div>
-                    <div id="compile-output" class="output-content"></div>
-                    <div id="stdout-output" class="output-content" style="display: none;"></div>
-                    <div id="stderr-output" class="output-content" style="display: none;"></div>
+                    
+                    <div class="output-area">
+                        <div id="compile-output" class="output-content"></div>
+                        <div id="stdout-output" class="output-content" style="display: none;"></div>
+                        <div id="stderr-output" class="output-content" style="display: none;"></div>
+                    </div>
+                    
+                    <!-- Program Input Container - Always visible but toggled by JS -->
+                    <div id="input-container" class="input-container" style="display: none;">
+                        <label for="program-input"><i class="fas fa-keyboard"></i> Program Input:</label>
+                        <textarea id="program-input" rows="4" placeholder="Enter input for your program here..."></textarea>
+                        <button id="run-with-input-btn" class="btn action-btn run-btn">
+                            <i class="fas fa-play"></i> Run with Input
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
@@ -262,6 +301,7 @@
             document.getElementById('compile-button').addEventListener('click', compileCode);
             document.getElementById('save-button').addEventListener('click', saveCode);
             document.getElementById('toggle-results').addEventListener('click', toggleResults);
+            document.getElementById('run-with-input-btn').addEventListener('click', runWithInput);
 
             // Tab switching
             document.getElementById('output-tabs').addEventListener('click', function(e) {
@@ -541,6 +581,9 @@
             document.getElementById('stdout-output').textContent = '';
             document.getElementById('stderr-output').textContent = '';
             
+            // Hide input container initially
+            document.getElementById('input-container').style.display = 'none';
+            
             // Update UI
             runButton.disabled = true;
             compileButton.disabled = true;
@@ -563,11 +606,28 @@
                 document.getElementById('loading-spinner').style.display = 'none';
 
                 if (data.success) {
-                    document.getElementById('stdout-output').textContent = data.stdout || 'Program executed with no output.';
-                    document.getElementById('stderr-output').textContent = data.stderr || '';
+                    if (data.stage === 'needs_input') {
+                        // Program needs input - show the prompt and input area
+                        document.getElementById('stdout-output').textContent = data.stdout || 'Program is waiting for input.';
+                        document.getElementById('input-container').style.display = 'block';
+                        
+                        switchTab('stdout-output');
+                        showNotification('Program requires input. Please provide input and run again.', 'info');
+                    } else {
+                        // Normal execution results
+                        document.getElementById('stdout-output').textContent = data.stdout || 'Program executed with no output.';
+                        document.getElementById('stderr-output').textContent = data.stderr || '';
+                        
+                        // Check if program might need input for future runs
+                        if (data.needs_input) {
+                            document.getElementById('input-container').style.display = 'block';
+                        } else {
+                            document.getElementById('input-container').style.display = 'none';
+                        }
 
-                    switchTab('stdout-output');
-                    showNotification('Code executed successfully', 'success');
+                        switchTab('stdout-output');
+                        showNotification('Code executed successfully', 'success');
+                    }
                 } else {
                     if (data.stage === 'compilation') {
                         document.getElementById('compile-output').textContent = data.output || 'Compilation failed with no output.';
@@ -590,6 +650,66 @@
                 runButton.disabled = false;
                 compileButton.disabled = false;
                 runButton.innerHTML = '<i class="fas fa-play"></i> Run';
+                executionInProgress = false;
+            });
+        }
+
+        function runWithInput() {
+            if (executionInProgress) return;
+            executionInProgress = true;
+
+            const code = editor.getValue();
+            const userInput = document.getElementById('program-input').value;
+            const runButton = document.getElementById('run-with-input-btn');
+            
+            // Update UI
+            runButton.disabled = true;
+            runButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Running...';
+            document.getElementById('loading-spinner').style.display = 'block';
+
+            // Send to server
+            fetch('/execute_code', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ 
+                    code: code,
+                    project_id: projectId,
+                    input: userInput
+                }),
+            })
+            .then(response => response.json())
+            .then(data => {
+                document.getElementById('loading-spinner').style.display = 'none';
+
+                if (data.success) {
+                    document.getElementById('stdout-output').textContent = data.stdout || 'Program executed with no output.';
+                    document.getElementById('stderr-output').textContent = data.stderr || '';
+                    
+                    switchTab('stdout-output');
+                    showNotification('Code executed successfully', 'success');
+                } else {
+                    if (data.stage === 'compilation') {
+                        document.getElementById('compile-output').textContent = data.output || 'Compilation failed with no output.';
+                        switchTab('compile-output');
+                        showNotification('Compilation failed', 'error');
+                    } else {
+                        document.getElementById('stderr-output').textContent = data.output || 'Execution failed with no output.';
+                        switchTab('stderr-output');
+                        showNotification('Execution failed', 'error');
+                    }
+                }
+            })
+            .catch(error => {
+                document.getElementById('loading-spinner').style.display = 'none';
+                document.getElementById('stderr-output').textContent = 'Error: ' + error.message;
+                switchTab('stderr-output');
+                showNotification('Request failed', 'error');
+            })
+            .finally(() => {
+                runButton.disabled = false;
+                runButton.innerHTML = '<i class="fas fa-play"></i> Run with Input';
                 executionInProgress = false;
             });
         }

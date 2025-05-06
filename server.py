@@ -269,13 +269,12 @@ def execute_code():
                 "output": "Compilation successful"
             })
 
-        # IMPORTANT: Detect input functions more reliably
+        # Check if the program expects input
         input_functions = ["scanf", "gets", "fgets", "getchar", "getc", "read", "fscanf"]
         needs_input = any(func in code for func in input_functions)
         
         # If program needs input but no input is provided
         if needs_input and not user_input:
-            # Just tell the client we need input instead of trying to run it
             return jsonify({
                 "success": True,
                 "stage": "needs_input",
@@ -283,9 +282,8 @@ def execute_code():
                 "needs_input": True
             })
 
-        # Now handle the case where user has provided input or program doesn't need input
+        # Execute the program with the provided input
         try:
-            # Use communicate() instead of waiting for readline()
             process = subprocess.Popen(
                 [exec_path],
                 stdin=subprocess.PIPE,
@@ -298,7 +296,7 @@ def execute_code():
             if user_input and not user_input.endswith('\n'):
                 user_input += '\n'
                 
-            # Use communicate with a timeout - this avoids deadlocks
+            # Use communicate with a timeout to prevent deadlocks
             stdout, stderr = process.communicate(input=user_input, timeout=5)
             returncode = process.returncode
             
