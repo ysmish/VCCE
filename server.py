@@ -217,17 +217,22 @@ def execute_code():
     project_id = request.json.get("project_id")
     document_id = request.json.get("document_id")
     exercise_id = request.json.get("exercise_id")
+    user_input = request.json.get("input", "")
+    compile_only = request.json.get("compile_only", False)
     
     if not code:
         return jsonify({"error": "No code provided"}), 400
 
-    with tempfile.NamedTemporaryFile(suffix='.c', delete=False) as source_file:
-        source_path = source_file.name
-        source_file.write(code.encode())
-
-    exec_path = source_path[:-2]  # Remove .c extension
-
+    # Create temporary directory and files
+    temp_dir = tempfile.mkdtemp()
+    source_path = os.path.join(temp_dir, "source.c")
+    exec_path = os.path.join(temp_dir, "executable")
+    
     try:
+        # Write code to file
+        with open(source_path, 'w', encoding='utf-8') as f:
+            f.write(code)
+        
         # Compile the code
         compile_result = subprocess.run(
             ["gcc", source_path, "-o", exec_path],
@@ -237,7 +242,7 @@ def execute_code():
         )
 
         if compile_result.returncode != 0:
-            # Save compilation history
+            # Compilation failed
             compilation_history = CompilationHistory(
                 user_id=session['user_id'],
                 project_id=project_id,
@@ -250,28 +255,55 @@ def execute_code():
             db.session.add(compilation_history)
             db.session.commit()
             
-            os.unlink(source_path)
-            try:
-                os.unlink(exec_path)
-            except:
-                pass
             return jsonify({
                 "success": False,
                 "stage": "compilation",
                 "output": compile_result.stderr
             })
+            
+        # If compile_only is True, return success without executing
+        if compile_only:
+            return jsonify({
+                "success": True,
+                "stage": "compilation",
+                "output": "Compilation successful"
+            })
 
-        # Execute the code
+        # IMPORTANT: Detect input functions more reliably
+        input_functions = ["scanf", "gets", "fgets", "getchar", "getc", "read", "fscanf"]
+        needs_input = any(func in code for func in input_functions)
+        
+        # If program needs input but no input is provided
+        if needs_input and not user_input:
+            # Just tell the client we need input instead of trying to run it
+            return jsonify({
+                "success": True,
+                "stage": "needs_input",
+                "stdout": "This program requires input. Please provide input below.",
+                "needs_input": True
+            })
+
+        # Now handle the case where user has provided input or program doesn't need input
         try:
-            execution_result = subprocess.run(
+            # Use communicate() instead of waiting for readline()
+            process = subprocess.Popen(
                 [exec_path],
-                capture_output=True,
-                text=True,
-                timeout=5
+                stdin=subprocess.PIPE,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                text=True
             )
             
+            # Ensure input ends with a newline
+            if user_input and not user_input.endswith('\n'):
+                user_input += '\n'
+                
+            # Use communicate with a timeout - this avoids deadlocks
+            stdout, stderr = process.communicate(input=user_input, timeout=5)
+            returncode = process.returncode
+            
             # Save compilation history
-            status = 'success' if execution_result.returncode == 0 else 'runtime_error'
+            status = 'success' if returncode == 0 else 'runtime_error'
             compilation_history = CompilationHistory(
                 user_id=session['user_id'],
                 project_id=project_id,
@@ -279,7 +311,7 @@ def execute_code():
                 exercise_id=exercise_id,
                 code=code,
                 compilation_output="Compilation successful",
-                execution_output=execution_result.stdout + execution_result.stderr,
+                execution_output=stdout + stderr,
                 status=status
             )
             db.session.add(compilation_history)
@@ -288,26 +320,15 @@ def execute_code():
             return jsonify({
                 "success": True,
                 "stage": "execution",
-                "stdout": execution_result.stdout,
-                "stderr": execution_result.stderr,
-                "returncode": execution_result.returncode
+                "stdout": stdout,
+                "stderr": stderr,
+                "returncode": returncode,
+                "needs_input": needs_input
             })
 
         except subprocess.TimeoutExpired:
-            # Save compilation history
-            compilation_history = CompilationHistory(
-                user_id=session['user_id'],
-                project_id=project_id,
-                document_id=document_id,
-                exercise_id=exercise_id,
-                code=code,
-                compilation_output="Compilation successful",
-                execution_output="Execution timed out after 5 seconds",
-                status='runtime_error'
-            )
-            db.session.add(compilation_history)
-            db.session.commit()
-            
+            process.kill()
+            stdout, stderr = process.communicate()
             return jsonify({
                 "success": False,
                 "stage": "execution",
@@ -319,25 +340,19 @@ def execute_code():
                 "stage": "execution",
                 "output": f"Error during execution: {str(e)}"
             })
-    except subprocess.TimeoutExpired:
-        return jsonify({
-            "success": False,
-            "stage": "compilation",
-            "output": "Compilation timed out after 5 seconds"
-        })
     except Exception as e:
         return jsonify({
             "success": False,
-            "stage": "compilation",
-            "output": f"Error during compilation: {str(e)}"
+            "stage": "error",
+            "output": f"Error: {str(e)}"
         })
     finally:
+        # Clean up temporary directory
         try:
-            os.unlink(source_path)
-            os.unlink(exec_path)
+            import shutil
+            shutil.rmtree(temp_dir, ignore_errors=True)
         except:
             pass
-
 
 # Exercise routes
 @app.route("/exercises")
