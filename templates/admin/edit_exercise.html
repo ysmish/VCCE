@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Edit Exercise - Admin - Collaborative C Code Editor</title>
-    <!-- External CSS and icon libraries -->
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.62.0/codemirror.min.css">
@@ -12,7 +11,6 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.62.0/mode/clike/clike.min.js"></script>
 </head>
 <body>
-    <!-- Header section with admin info and navigation -->
     <div class="header">
         <h1>Admin Dashboard <span class="project-subtitle">Collaborative C Code Editor</span></h1>
         <div class="user-info">
@@ -22,9 +20,7 @@
         </div>
     </div>
 
-    <!-- Main admin container with sidebar and content -->
     <div class="admin-container">
-        <!-- Sidebar navigation for admin pages -->
         <div class="admin-sidebar">
             <div class="admin-nav">
                 <h3>Administration</h3>
@@ -37,7 +33,6 @@
             </div>
         </div>
 
-        <!-- Main content area for editing an exercise -->
         <div class="admin-content">
             <div class="admin-header">
                 <h2>Edit Exercise: {{ exercise.title }}</h2>
@@ -48,7 +43,6 @@
                 </div>
             </div>
             
-            <!-- Exercise edit form -->
             <div class="exercise-form-container">
                 <form id="exercise-form" method="post" action="{{ url_for('admin.edit_exercise', exercise_id=exercise.id) }}">
                     <div class="form-row">
@@ -126,7 +120,7 @@
             lineWrapping: true
         });
         
-        // Form submission: update CodeMirror textareas and validate test cases JSON
+        // Form submission
         document.getElementById('exercise-form').addEventListener('submit', function(e) {
             // Update CodeMirror textareas before submission
             initialCodeEditor.save();

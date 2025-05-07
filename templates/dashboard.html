@@ -4,143 +4,22 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dashboard - Collaborative C Code Editor</title>
-    <!-- External CSS -->
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
-    <!-- Inline styles for dashboard layout and design -->
-    <style>
-        body {
-            min-height: 100vh;
-            background: var(--bg-primary);
-            position: relative;
-            overflow-x: hidden;
-        }
-        .dashboard-bg-accent {
-            position: absolute;
-            top: -120px;
-            left: 50%;
-            transform: translateX(-50%);
-            width: 120vw;
-            height: 400px;
-            z-index: 0;
-            pointer-events: none;
-            background: radial-gradient(ellipse at center, rgba(139,92,246,0.18) 0%, rgba(14,165,233,0.10) 60%, transparent 100%);
-            filter: blur(8px);
-        }
-        .dashboard-container {
-            position: relative;
-            z-index: 1;
-            max-width: 1200px;
-            margin: 3rem auto 0 auto;
-            padding: 2.5rem 2rem 4rem 2rem;
-            border-radius: 2rem;
-            background: rgba(30,41,59,0.85);
-            box-shadow: 0 8px 32px 0 rgba(31,38,135,0.37);
-            backdrop-filter: blur(16px);
-            border: 1.5px solid var(--border-color);
-        }
-        .dashboard-section {
-            margin-bottom: 3rem;
-            background: rgba(51,65,85,0.7);
-            border-radius: 1.5rem;
-            box-shadow: 0 2px 16px 0 rgba(139,92,246,0.08);
-            padding: 2rem 1.5rem 1.5rem 1.5rem;
-            border: 1px solid var(--border-color);
-        }
-        .section-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 2rem;
-            padding-bottom: 1rem;
-            border-bottom: 1px solid var(--border-color);
-        }
-        .section-header h2 {
-            font-size: 2.2rem;
-            font-family: 'Space Grotesk', sans-serif;
-            font-weight: 700;
-            letter-spacing: -0.03em;
-            background: var(--gradient-primary);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            text-shadow: 0 2px 8px rgba(139,92,246,0.10);
-        }
-        .project-list, .exercise-list {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
-            gap: 2rem;
-        }
-        .project-card, .exercise-card {
-            background: rgba(30,41,59,0.95);
-            border-radius: 1.25rem;
-            box-shadow: 0 4px 24px 0 rgba(139,92,246,0.10);
-            border: 1.5px solid var(--border-color);
-            padding: 2rem 1.5rem 1.5rem 1.5rem;
-            transition: transform 0.25s cubic-bezier(0.4,0,0.2,1), box-shadow 0.25s cubic-bezier(0.4,0,0.2,1);
-            position: relative;
-            overflow: hidden;
-        }
-        .project-card:hover, .exercise-card:hover {
-            transform: translateY(-8px) scale(1.025);
-            box-shadow: 0 8px 32px 0 rgba(139,92,246,0.18);
-            border-color: var(--primary-color);
-        }
-        .project-info h3, .exercise-info h3 {
-            font-size: 1.3rem;
-            font-weight: 600;
-            color: var(--text-primary);
-            margin-bottom: 0.5rem;
-            letter-spacing: -0.01em;
-        }
-        .project-info p, .exercise-info p {
-            color: var(--text-muted);
-            font-size: 1rem;
-            margin-bottom: 0.25rem;
-        }
-        .project-actions, .exercise-actions {
-            margin-top: 1.2rem;
-            display: flex;
-            justify-content: flex-end;
-        }
-        .no-items {
-            grid-column: 1 / -1;
-            text-align: center;
-            color: var(--text-muted);
-            font-style: italic;
-            padding: 2rem 0;
-            font-size: 1.1rem;
-        }
-        @media (max-width: 700px) {
-            .dashboard-container {
-                padding: 1rem 0.5rem;
-            }
-            .dashboard-section {
-                padding: 1rem 0.5rem;
-            }
-            .section-header h2 {
-                font-size: 1.3rem;
-            }
-        }
-    </style>
 </head>
 <body>
-    <!-- Background accent for visual appeal -->
-    <div class="dashboard-bg-accent"></div>
-    <!-- Header section with user info and logout button -->
     <div class="header">
-        <h1 style="font-size:2rem; background:var(--gradient-primary);-webkit-background-clip:text;-webkit-text-fill-color:transparent;letter-spacing:-0.03em;">Collaborative C Code Editor</h1>
+        <h1>Collaborative C Code Editor</h1>
         <div class="user-info">
             <span id="current-username">{{ username }}</span>
             <a href="{{ url_for('logout') }}" class="btn logout-btn">Logout</a>
         </div>
     </div>
 
-    <!-- Main dashboard container -->
     <div class="dashboard-container">
-        <!-- My Projects section -->
         <div class="dashboard-section">
             <div class="section-header">
-                <h2><i class="fas fa-folder-open"></i> My Projects</h2>
+                <h2>My Projects</h2>
                 <a href="{{ url_for('new_project') }}" class="btn create-btn">
                     <i class="fas fa-plus"></i> New Project
                 </a>
@@ -167,10 +46,9 @@
             </div>
         </div>
 
-        <!-- Shared Projects section -->
         <div class="dashboard-section">
             <div class="section-header">
-                <h2><i class="fas fa-users"></i> Shared Projects</h2>
+                <h2>Shared Projects</h2>
             </div>
             <div class="project-list">
                 {% if collaborated_projects %}
@@ -194,10 +72,9 @@
             </div>
         </div>
 
-        <!-- Coding Exercises section -->
         <div class="dashboard-section">
             <div class="section-header">
-                <h2><i class="fas fa-dumbbell"></i> Coding Exercises</h2>
+                <h2>Coding Exercises</h2>
                 <a href="{{ url_for('exercises') }}" class="btn view-all-btn">
                     <i class="fas fa-list"></i> View All Exercises
                 </a>

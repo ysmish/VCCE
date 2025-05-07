@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{ project.name }} - Collaborative C Code Editor</title>
-    <!-- External CSS and JS libraries -->
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.62.0/codemirror.min.js"></script>
@@ -15,7 +14,6 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.62.0/addon/hint/show-hint.min.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.62.0/addon/hint/show-hint.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.62.0/addon/hint/anyword-hint.min.js"></script>
-    <!-- Inline styles for editor layout and design -->
     <style>
         /* Custom styles for the input container */
         .input-container {
@@ -73,7 +71,6 @@
     </style>
 </head>
 <body>
-    <!-- Header section with project title and user info -->
     <div class="header">
         <h1>{{ project.name }} <span class="project-subtitle">Collaborative C Code Editor</span></h1>
         <div class="user-info">
@@ -83,9 +80,7 @@
         </div>
     </div>
 
-    <!-- Main container for sidebar and content -->
     <div class="main-container">
-        <!-- Sidebar with project info, active users, and chat -->
         <div class="sidebar">
             <div class="project-info">
                 <h3>Project Details</h3>
@@ -127,7 +122,6 @@
             </div>
         </div>
 
-        <!-- Content container for editor and results -->
         <div class="content-container">
             <div class="editor-container">
                 <div class="editor-options">
@@ -186,7 +180,6 @@
         </div>
     </div>
 
-    <!-- JavaScript for editor and collaboration functionality -->
     <script>
         // Global variables
         let editor;
@@ -257,149 +250,576 @@
                         operation = {
                             type: 'delete',
                             position: editor.indexFromPos(changeObj.from),
-                            length: changeObj.removed.join('\n').length,
+                            text: changeObj.removed.join('\n'),
+                            project_id: projectId
+                        };
+                    } else if (changeObj.origin === 'complete-reset') {
+                        operation = {
+                            type: 'replace',
+                            text: editor.getValue(),
                             project_id: projectId
                         };
                     }
-                    
+
                     if (operation) {
                         socket.emit('edit', operation);
                     }
                 }
             });
+
+            // Track cursor position changes for collaborative editing
+            editor.on('cursorActivity', function() {
+                const cursor = editor.getCursor();
+                socket.emit('cursor_move', { 
+                    project_id: projectId,
+                    position: { line: cursor.line, ch: cursor.ch }
+                });
+            });
         }
 
         function initializeSocketConnection() {
-            socket = io();
-            
-            socket.on('connect', function() {
-                socket.emit('join', { project_id: projectId, user_id: currentUserId, username: currentUsername });
-            });
-            
-            socket.on('user_joined', function(data) {
-                activeUsers.set(data.user_id, data.username);
-                updateUsersList();
-                userColors[data.user_id] = generateUserColor(data.username);
-            });
-            
-            socket.on('user_left', function(data) {
-                activeUsers.delete(data.user_id);
-                updateUsersList();
-                delete userCursors[data.user_id];
-                delete userColors[data.user_id];
-            });
-            
-            socket.on('edit', function(operation) {
-                if (operation.project_id === projectId) {
-                    const pos = editor.posFromIndex(operation.position);
-                    if (operation.type === 'insert') {
-                        editor.replaceRange(operation.text, pos, null, 'socket');
-                    } else if (operation.type === 'delete') {
-                        const endPos = editor.posFromIndex(operation.position + operation.length);
-                        editor.replaceRange('', pos, endPos, 'socket');
-                    }
+            socket = io({
+                query: {
+                    project_id: projectId
                 }
             });
-            
-            socket.on('cursor_move', function(data) {
-                if (data.user_id !== currentUserId && activeUsers.has(data.user_id)) {
-                    userCursors[data.user_id] = data.position;
-                    updateCursors();
-                }
-            });
-            
-            socket.on('chat_message', function(data) {
-                appendChatMessage(data.username, data.message);
-            });
+
+            // Socket event handlers
+            socket.on('connect', onSocketConnect);
+            socket.on('document', onDocumentUpdate);
+            socket.on('user_connected', onUserConnected);
+            socket.on('user_disconnected', onUserDisconnected);
+            socket.on('all_users', onAllUsers);
+            socket.on('edit_error', onEditError);
+            socket.on('cursor_update', onCursorUpdate);
+            socket.on('new_chat_message', onNewChatMessage);
         }
 
         function initializeUIEvents() {
-            document.getElementById('compile-button').addEventListener('click', compileCode);
+            // Button click events
             document.getElementById('run-button').addEventListener('click', runCode);
+            document.getElementById('compile-button').addEventListener('click', compileCode);
             document.getElementById('save-button').addEventListener('click', saveCode);
             document.getElementById('toggle-results').addEventListener('click', toggleResults);
             document.getElementById('run-with-input-btn').addEventListener('click', runWithInput);
-            
-            document.getElementById('chat-form').addEventListener('submit', function(e) {
-                e.preventDefault();
-                const input = document.getElementById('chat-input');
-                const message = input.value.trim();
-                if (message) {
-                    socket.emit('chat_message', { project_id: projectId, message: message });
-                    input.value = '';
+
+            // Tab switching
+            document.getElementById('output-tabs').addEventListener('click', function(e) {
+                if (e.target.classList.contains('tab')) {
+                    switchTab(e.target.getAttribute('data-tab'));
                 }
             });
-            
-            document.getElementById('invite-form').addEventListener('submit', function(e) {
+
+            // Initialize first tab
+            document.querySelector('.tab.active').click();
+
+            // Chat form submission
+            document.getElementById('chat-form').addEventListener('submit', function(e) {
                 e.preventDefault();
-                const input = document.getElementById('collaborator-username');
-                const username = input.value.trim();
-                if (username) {
-                    fetch(`/project/${projectId}/invite`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ username: username })
-                    })
-                    .then(response => response.json())
-                    .then(data => {
-                        if (data.success) {
-                            showNotification('Collaborator invited successfully', 'success');
-                        } else {
-                            showNotification(data.error, 'error');
-                        }
-                    })
-                    .catch(error => {
-                        showNotification('Error inviting collaborator', 'error');
-                    });
-                    input.value = '';
-                }
+                sendChatMessage();
             });
         }
 
+        // Socket event handlers
+        function onSocketConnect() {
+            console.log('Connected to server');
+            
+            // Join project room
+            socket.emit('join_project', {
+                project_id: projectId
+            });
+        }
+
+        function onDocumentUpdate(data) {
+            const cursor = editor.getCursor();
+            const scrollInfo = editor.getScrollInfo();
+
+            editor.operation(() => {
+                editor.setValue(data.text);
+                editor.changeGeneration(true);
+            });
+
+            editor.setCursor(cursor);
+            editor.scrollTo(scrollInfo.left, scrollInfo.top);
+            
+            // Update last updated time
+            document.getElementById('last-updated').textContent = new Date().toLocaleString();
+        }
+
+        function onUserConnected(data) {
+            console.log('User connected:', data.username);
+            
+            // Generate a color for this user
+            if (!userColors[data.user_id]) {
+                userColors[data.user_id] = generateUserColor(data.username);
+            }
+            
+            activeUsers.set(data.sid, {
+                username: data.username,
+                user_id: data.user_id,
+                color: userColors[data.user_id],
+                isYou: data.user_id === currentUserId
+            });
+            
+            updateUsersList();
+            
+            // Show notification
+            if (data.user_id !== currentUserId) {
+                showNotification(`${data.username} joined the project`, 'info');
+            }
+        }
+
+        function onUserDisconnected(data) {
+            console.log('User disconnected:', data.username);
+            
+            if (activeUsers.has(data.sid)) {
+                const user = activeUsers.get(data.sid);
+                activeUsers.delete(data.sid);
+                
+                // Remove user cursor if exists
+                if (userCursors[data.sid]) {
+                    userCursors[data.sid].clear();
+                    delete userCursors[data.sid];
+                }
+                
+                updateUsersList();
+                
+                // Show notification
+                showNotification(`${data.username} left the project`, 'info');
+            }
+        }
+
+        function onAllUsers(data) {
+            console.log('Received all users:', data.users);
+            
+            // Clear existing users except current user
+            activeUsers.clear();
+            
+            // Add all users from the server
+            data.users.forEach(user => {
+                // Generate a color for this user if not already assigned
+                if (!userColors[user.user_id]) {
+                    userColors[user.user_id] = generateUserColor(user.username);
+                }
+                
+                activeUsers.set(user.sid, {
+                    username: user.username,
+                    user_id: user.user_id,
+                    color: userColors[user.user_id],
+                    isYou: user.user_id === currentUserId
+                });
+            });
+            
+            updateUsersList();
+        }
+
+        function onEditError(data) {
+            console.error('Edit error:', data.message);
+            showNotification('Synchronization error: ' + data.message, 'error');
+        }
+
+        function onCursorUpdate(data) {
+            // Skip if it's the current user's cursor
+            if (data.user_id === currentUserId) return;
+            
+            // Clear previous cursor marker for this user if it exists
+            if (userCursors[data.sid]) {
+                userCursors[data.sid].clear();
+            }
+            
+            // Get the user's color
+            const user = activeUsers.get(data.sid);
+            if (!user) return;
+            
+            const color = user.color;
+            
+            // Create a cursor element
+            const cursorElem = document.createElement('div');
+            cursorElem.className = 'remote-cursor';
+            cursorElem.style.backgroundColor = color;
+            cursorElem.style.borderLeft = `2px solid ${color}`;
+            
+            // Add username above cursor
+            const usernameElem = document.createElement('div');
+            usernameElem.className = 'remote-cursor-name';
+            usernameElem.style.backgroundColor = color;
+            usernameElem.textContent = user.username;
+            cursorElem.appendChild(usernameElem);
+            
+            // Create and store the cursor marker
+            userCursors[data.sid] = editor.setBookmark(
+                { line: data.position.line, ch: data.position.ch },
+                { widget: cursorElem }
+            );
+        }
+
+        function onNewChatMessage(data) {
+            const chatMessages = document.getElementById('chat-messages');
+            
+            const isOwnMessage = data.user_id === currentUserId;
+            
+            const messageElement = document.createElement('div');
+            messageElement.className = `chat-message ${isOwnMessage ? 'own-message' : ''}`;
+            
+            // Message header with username and time
+            const messageHeader = document.createElement('div');
+            messageHeader.className = 'message-header';
+            
+            const usernameSpan = document.createElement('span');
+            usernameSpan.className = 'message-username';
+            usernameSpan.textContent = data.username;
+            usernameSpan.style.color = userColors[data.user_id] || '#666';
+            
+            const timeSpan = document.createElement('span');
+            timeSpan.className = 'message-time';
+            const messageTime = new Date(data.timestamp);
+            timeSpan.textContent = messageTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            
+            messageHeader.appendChild(usernameSpan);
+            messageHeader.appendChild(timeSpan);
+            
+            // Message content
+            const messageContent = document.createElement('div');
+            messageContent.className = 'message-content';
+            messageContent.textContent = data.message;
+            
+            messageElement.appendChild(messageHeader);
+            messageElement.appendChild(messageContent);
+            
+            chatMessages.appendChild(messageElement);
+            
+            // Scroll to bottom
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+            
+            // Show notification if tab is not active
+            if (document.hidden && !isOwnMessage) {
+                const notification = new Notification('New message', {
+                    body: `${data.username}: ${data.message}`,
+                    icon: '/static/favicon.ico'
+                });
+            }
+        }
+
+        // UI Functions
         function updateUsersList() {
             const usersList = document.getElementById('users-list');
             usersList.innerHTML = '';
-            activeUsers.forEach((username, userId) => {
+            
+            activeUsers.forEach((user, sid) => {
                 const li = document.createElement('li');
-                li.textContent = username;
-                if (userId === currentUserId) {
-                    li.classList.add('current-user');
-                }
+                li.textContent = user.username + (user.isYou ? ' (you)' : '');
+                li.className = user.isYou ? 'current-user' : '';
+                
+                // Add colored dot indicator
+                const statusDot = document.createElement('span');
+                statusDot.className = 'status-dot';
+                statusDot.style.backgroundColor = user.color;
+                li.prepend(statusDot);
+                
                 usersList.appendChild(li);
             });
         }
 
-        function updateCursors() {
-            editor.getAllMarks().forEach(mark => mark.clear());
-            Object.entries(userCursors).forEach(([userId, position]) => {
-                if (activeUsers.has(userId)) {
-                    const pos = editor.posFromIndex(position);
-                    const cursor = document.createElement('div');
-                    cursor.className = 'remote-cursor';
-                    cursor.style.backgroundColor = userColors[userId];
-                    cursor.textContent = activeUsers.get(userId);
-                    editor.addWidget(pos, cursor, false);
+        function switchTab(tabId) {
+            document.querySelectorAll('.tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            document.querySelector(`[data-tab="${tabId}"]`).classList.add('active');
+            
+            document.querySelectorAll('.output-content').forEach(content => {
+                content.style.display = 'none';
+            });
+            document.getElementById(tabId).style.display = 'block';
+        }
+
+        function toggleResults() {
+            const resultsContainer = document.querySelector('.results-container');
+            const editorContainer = document.querySelector('.editor-container');
+            const toggleButton = document.getElementById('toggle-results');
+            
+            if (resultsContainer.style.display === 'none') {
+                resultsContainer.style.display = 'flex';
+                editorContainer.style.width = '60%';
+                toggleButton.innerHTML = '<i class="fas fa-columns"></i> Hide Results';
+            } else {
+                resultsContainer.style.display = 'none';
+                editorContainer.style.width = '100%';
+                toggleButton.innerHTML = '<i class="fas fa-columns"></i> Show Results';
+            }
+        }
+
+        function sendChatMessage() {
+            const chatInput = document.getElementById('chat-input');
+            const message = chatInput.value.trim();
+            
+            if (message) {
+                socket.emit('chat_message', {
+                    project_id: projectId,
+                    message: message
+                });
+                
+                chatInput.value = '';
+            }
+        }
+
+        // Code execution functions
+        function runCode() {
+            if (executionInProgress) return;
+            executionInProgress = true;
+
+            const code = editor.getValue();
+            const runButton = document.getElementById('run-button');
+            const compileButton = document.getElementById('compile-button');
+            
+            // Show results if hidden
+            if (document.querySelector('.results-container').style.display === 'none') {
+                toggleResults();
+            }
+            
+            // Clear output areas
+            document.getElementById('compile-output').textContent = '';
+            document.getElementById('stdout-output').textContent = '';
+            document.getElementById('stderr-output').textContent = '';
+            
+            // Hide input container initially
+            document.getElementById('input-container').style.display = 'none';
+            
+            // Update UI
+            runButton.disabled = true;
+            compileButton.disabled = true;
+            runButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Running...';
+            document.getElementById('loading-spinner').style.display = 'block';
+
+            // Send to server
+            fetch('/execute_code', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ 
+                    code: code,
+                    project_id: projectId
+                }),
+            })
+            .then(response => response.json())
+            .then(data => {
+                document.getElementById('loading-spinner').style.display = 'none';
+
+                if (data.success) {
+                    if (data.stage === 'needs_input') {
+                        // Program needs input - show the prompt and input area
+                        document.getElementById('stdout-output').textContent = data.stdout || 'Program is waiting for input.';
+                        document.getElementById('input-container').style.display = 'block';
+                        
+                        switchTab('stdout-output');
+                        showNotification('Program requires input. Please provide input and run again.', 'info');
+                    } else {
+                        // Normal execution results
+                        document.getElementById('stdout-output').textContent = data.stdout || 'Program executed with no output.';
+                        document.getElementById('stderr-output').textContent = data.stderr || '';
+                        
+                        // Check if program might need input for future runs
+                        if (data.needs_input) {
+                            document.getElementById('input-container').style.display = 'block';
+                        } else {
+                            document.getElementById('input-container').style.display = 'none';
+                        }
+
+                        switchTab('stdout-output');
+                        showNotification('Code executed successfully', 'success');
+                    }
+                } else {
+                    if (data.stage === 'compilation') {
+                        document.getElementById('compile-output').textContent = data.output || 'Compilation failed with no output.';
+                        switchTab('compile-output');
+                        showNotification('Compilation failed', 'error');
+                    } else {
+                        document.getElementById('stderr-output').textContent = data.output || 'Execution failed with no output.';
+                        switchTab('stderr-output');
+                        showNotification('Execution failed', 'error');
+                    }
                 }
+            })
+            .catch(error => {
+                document.getElementById('loading-spinner').style.display = 'none';
+                document.getElementById('stderr-output').textContent = 'Error: ' + error.message;
+                switchTab('stderr-output');
+                showNotification('Request failed', 'error');
+            })
+            .finally(() => {
+                runButton.disabled = false;
+                compileButton.disabled = false;
+                runButton.innerHTML = '<i class="fas fa-play"></i> Run';
+                executionInProgress = false;
             });
         }
 
-        function appendChatMessage(username, message) {
-            const chatMessages = document.getElementById('chat-messages');
-            const messageDiv = document.createElement('div');
-            messageDiv.className = 'chat-message';
-            messageDiv.innerHTML = `<strong>${username}:</strong> ${message}`;
-            chatMessages.appendChild(messageDiv);
-            chatMessages.scrollTop = chatMessages.scrollHeight;
+        function runWithInput() {
+            if (executionInProgress) return;
+            executionInProgress = true;
+
+            const code = editor.getValue();
+            const userInput = document.getElementById('program-input').value;
+            const runButton = document.getElementById('run-with-input-btn');
+            
+            // Update UI
+            runButton.disabled = true;
+            runButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Running...';
+            document.getElementById('loading-spinner').style.display = 'block';
+
+            // Send to server
+            fetch('/execute_code', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ 
+                    code: code,
+                    project_id: projectId,
+                    input: userInput
+                }),
+            })
+            .then(response => response.json())
+            .then(data => {
+                document.getElementById('loading-spinner').style.display = 'none';
+
+                if (data.success) {
+                    document.getElementById('stdout-output').textContent = data.stdout || 'Program executed with no output.';
+                    document.getElementById('stderr-output').textContent = data.stderr || '';
+                    
+                    switchTab('stdout-output');
+                    showNotification('Code executed successfully', 'success');
+                } else {
+                    if (data.stage === 'compilation') {
+                        document.getElementById('compile-output').textContent = data.output || 'Compilation failed with no output.';
+                        switchTab('compile-output');
+                        showNotification('Compilation failed', 'error');
+                    } else {
+                        document.getElementById('stderr-output').textContent = data.output || 'Execution failed with no output.';
+                        switchTab('stderr-output');
+                        showNotification('Execution failed', 'error');
+                    }
+                }
+            })
+            .catch(error => {
+                document.getElementById('loading-spinner').style.display = 'none';
+                document.getElementById('stderr-output').textContent = 'Error: ' + error.message;
+                switchTab('stderr-output');
+                showNotification('Request failed', 'error');
+            })
+            .finally(() => {
+                runButton.disabled = false;
+                runButton.innerHTML = '<i class="fas fa-play"></i> Run with Input';
+                executionInProgress = false;
+            });
+        }
+
+        function compileCode() {
+            if (executionInProgress) return;
+            executionInProgress = true;
+
+            const code = editor.getValue();
+            const compileButton = document.getElementById('compile-button');
+            const runButton = document.getElementById('run-button');
+            
+            // Show results if hidden
+            if (document.querySelector('.results-container').style.display === 'none') {
+                toggleResults();
+            }
+            
+            // Clear output areas
+            document.getElementById('compile-output').textContent = '';
+            
+            // Update UI
+            compileButton.disabled = true;
+            runButton.disabled = true;
+            compileButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Compiling...';
+            document.getElementById('loading-spinner').style.display = 'block';
+
+            // Send to server
+            fetch('/execute_code', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ 
+                    code: code,
+                    project_id: projectId,
+                    compile_only: true
+                }),
+            })
+            .then(response => response.json())
+            .then(data => {
+                document.getElementById('loading-spinner').style.display = 'none';
+                
+                if (data.success || data.stage === 'execution') {
+                    document.getElementById('compile-output').textContent = 'Compilation successful.';
+                    switchTab('compile-output');
+                    showNotification('Compilation successful', 'success');
+                } else {
+                    document.getElementById('compile-output').textContent = data.output || 'Compilation failed with no output.';
+                    switchTab('compile-output');
+                    showNotification('Compilation failed', 'error');
+                }
+            })
+            .catch(error => {
+                document.getElementById('loading-spinner').style.display = 'none';
+                document.getElementById('compile-output').textContent = 'Error: ' + error.message;
+                switchTab('compile-output');
+                showNotification('Request failed', 'error');
+            })
+            .finally(() => {
+                compileButton.disabled = false;
+                runButton.disabled = false;
+                compileButton.innerHTML = '<i class="fas fa-cogs"></i> Compile';
+                executionInProgress = false;
+            });
+        }
+
+        function saveCode() {
+            const code = editor.getValue();
+            const saveButton = document.getElementById('save-button');
+            
+            // Update UI
+            saveButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
+            saveButton.disabled = true;
+            
+            // Send to server
+            fetch(`/api/projects/${projectId}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ 
+                    content: code,
+                    save: true
+                }),
+            })
+            .then(response => response.json())
+            .then(data => {
+                document.getElementById('last-updated').textContent = new Date(data.updated_at).toLocaleString();
+                showNotification('Project saved successfully', 'success');
+            })
+            .catch(error => {
+                showNotification('Error saving project: ' + error.message, 'error');
+            })
+            .finally(() => {
+                saveButton.innerHTML = '<i class="fas fa-save"></i> Save';
+                saveButton.disabled = false;
+            });
         }
 
         function showNotification(message, type) {
             const notification = document.createElement('div');
             notification.className = `notification ${type}`;
             notification.textContent = message;
+
             document.body.appendChild(notification);
+
             setTimeout(() => {
                 notification.classList.add('show');
             }, 10);
+
             setTimeout(() => {
                 notification.classList.remove('show');
                 setTimeout(() => {
@@ -407,181 +827,10 @@
                 }, 300);
             }, 3000);
         }
-
-        function compileCode() {
-            if (executionInProgress) return;
-            executionInProgress = true;
-            
-            const compileButton = document.getElementById('compile-button');
-            const loadingSpinner = document.getElementById('loading-spinner');
-            
-            compileButton.disabled = true;
-            compileButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Compiling...';
-            loadingSpinner.style.display = 'block';
-            
-            document.getElementById('compile-output').textContent = '';
-            document.getElementById('stdout-output').textContent = '';
-            document.getElementById('stderr-output').textContent = '';
-            
-            fetch(`/project/${projectId}/compile`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ code: editor.getValue() })
-            })
-            .then(response => response.json())
-            .then(data => {
-                loadingSpinner.style.display = 'none';
-                
-                if (data.success) {
-                    document.getElementById('compile-output').textContent = 'Compilation successful!';
-                    showNotification('Compilation successful', 'success');
-                } else {
-                    document.getElementById('compile-output').textContent = data.error || 'Compilation failed';
-                    showNotification('Compilation failed', 'error');
-                }
-            })
-            .catch(error => {
-                loadingSpinner.style.display = 'none';
-                document.getElementById('compile-output').textContent = 'Error: ' + error.message;
-                showNotification('Compilation error', 'error');
-            })
-            .finally(() => {
-                compileButton.disabled = false;
-                compileButton.innerHTML = '<i class="fas fa-cogs"></i> Compile';
-                executionInProgress = false;
-            });
-        }
-
-        function runCode() {
-            if (executionInProgress) return;
-            executionInProgress = true;
-            
-            const runButton = document.getElementById('run-button');
-            const loadingSpinner = document.getElementById('loading-spinner');
-            
-            runButton.disabled = true;
-            runButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Running...';
-            loadingSpinner.style.display = 'block';
-            
-            document.getElementById('compile-output').textContent = '';
-            document.getElementById('stdout-output').textContent = '';
-            document.getElementById('stderr-output').textContent = '';
-            
-            fetch(`/project/${projectId}/run`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ code: editor.getValue() })
-            })
-            .then(response => response.json())
-            .then(data => {
-                loadingSpinner.style.display = 'none';
-                
-                if (data.success) {
-                    document.getElementById('stdout-output').textContent = data.output || 'No output';
-                    document.getElementById('stderr-output').textContent = data.error || '';
-                    showNotification('Execution successful', 'success');
-                } else {
-                    document.getElementById('stderr-output').textContent = data.error || 'Execution failed';
-                    showNotification('Execution failed', 'error');
-                }
-            })
-            .catch(error => {
-                loadingSpinner.style.display = 'none';
-                document.getElementById('stderr-output').textContent = 'Error: ' + error.message;
-                showNotification('Execution error', 'error');
-            })
-            .finally(() => {
-                runButton.disabled = false;
-                runButton.innerHTML = '<i class="fas fa-play"></i> Run';
-                executionInProgress = false;
-            });
-        }
-
-        function saveCode() {
-            const saveButton = document.getElementById('save-button');
-            saveButton.disabled = true;
-            saveButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
-            
-            fetch(`/project/${projectId}/save`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ code: editor.getValue() })
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    showNotification('Code saved successfully', 'success');
-                    document.getElementById('last-updated').textContent = new Date().toLocaleString();
-                } else {
-                    showNotification('Error saving code', 'error');
-                }
-            })
-            .catch(error => {
-                showNotification('Error saving code', 'error');
-            })
-            .finally(() => {
-                saveButton.disabled = false;
-                saveButton.innerHTML = '<i class="fas fa-save"></i> Save';
-            });
-        }
-
-        function toggleResults() {
-            const resultsContainer = document.querySelector('.results-container');
-            const toggleButton = document.getElementById('toggle-results');
-            
-            if (resultsContainer.style.display === 'none') {
-                resultsContainer.style.display = 'block';
-                toggleButton.innerHTML = '<i class="fas fa-columns"></i> Hide Results';
-            } else {
-                resultsContainer.style.display = 'none';
-                toggleButton.innerHTML = '<i class="fas fa-columns"></i> Show Results';
-            }
-        }
-
-        function runWithInput() {
-            if (executionInProgress) return;
-            executionInProgress = true;
-            
-            const runButton = document.getElementById('run-with-input-btn');
-            const loadingSpinner = document.getElementById('loading-spinner');
-            const input = document.getElementById('program-input').value;
-            
-            runButton.disabled = true;
-            runButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Running...';
-            loadingSpinner.style.display = 'block';
-            
-            document.getElementById('compile-output').textContent = '';
-            document.getElementById('stdout-output').textContent = '';
-            document.getElementById('stderr-output').textContent = '';
-            
-            fetch(`/project/${projectId}/run`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ code: editor.getValue(), input: input })
-            })
-            .then(response => response.json())
-            .then(data => {
-                loadingSpinner.style.display = 'none';
-                
-                if (data.success) {
-                    document.getElementById('stdout-output').textContent = data.output || 'No output';
-                    document.getElementById('stderr-output').textContent = data.error || '';
-                    showNotification('Execution successful', 'success');
-                } else {
-                    document.getElementById('stderr-output').textContent = data.error || 'Execution failed';
-                    showNotification('Execution failed', 'error');
-                }
-            })
-            .catch(error => {
-                loadingSpinner.style.display = 'none';
-                document.getElementById('stderr-output').textContent = 'Error: ' + error.message;
-                showNotification('Execution error', 'error');
-            })
-            .finally(() => {
-                runButton.disabled = false;
-                runButton.innerHTML = '<i class="fas fa-play"></i> Run with Input';
-                executionInProgress = false;
-            });
+        
+        // Request notification permission
+        if ('Notification' in window && Notification.permission !== 'granted' && Notification.permission !== 'denied') {
+            Notification.requestPermission();
         }
     </script>
 </body>

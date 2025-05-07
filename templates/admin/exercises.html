@@ -4,12 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Exercise Management - Admin - Collaborative C Code Editor</title>
-    <!-- External CSS and icon libraries -->
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
 </head>
 <body>
-    <!-- Header section with admin info and navigation -->
     <div class="header">
         <h1>Admin Dashboard <span class="project-subtitle">Collaborative C Code Editor</span></h1>
         <div class="user-info">
@@ -19,9 +17,7 @@
         </div>
     </div>
 
-    <!-- Main admin container with sidebar and content -->
     <div class="admin-container">
-        <!-- Sidebar navigation for admin pages -->
         <div class="admin-sidebar">
             <div class="admin-nav">
                 <h3>Administration</h3>
@@ -34,16 +30,13 @@
             </div>
         </div>
 
-        <!-- Main content area for exercise management -->
         <div class="admin-content">
             <div class="admin-header">
                 <h2>Exercise Management</h2>
                 <div class="admin-actions">
-                    <!-- Button to create a new exercise -->
                     <a href="{{ url_for('admin.new_exercise') }}" class="btn create-btn">
                         <i class="fas fa-plus"></i> New Exercise
                     </a>
-                    <!-- Search box for filtering exercises -->
                     <div class="search-box">
                         <input type="text" id="exercise-search" placeholder="Search exercises...">
                         <button class="search-btn"><i class="fas fa-search"></i></button>
@@ -51,7 +44,6 @@
                 </div>
             </div>
             
-            <!-- Table of exercises -->
             <div class="admin-table-container">
                 <table class="admin-table exercises-table">
                     <thead>
@@ -75,11 +67,9 @@
                             </td>
                             <td>{{ exercise.category }}</td>
                             <td class="actions">
-                                <!-- Edit exercise button -->
                                 <a href="{{ url_for('admin.edit_exercise', exercise_id=exercise.id) }}" class="btn action-btn edit-btn">
                                     <i class="fas fa-edit"></i>
                                 </a>
-                                <!-- Delete exercise button -->
                                 <button class="btn action-btn delete-btn" data-id="{{ exercise.id }}" data-title="{{ exercise.title }}">
                                     <i class="fas fa-trash"></i>
                                 </button>
@@ -117,7 +107,7 @@
     </div>
 
     <script>
-        // Search functionality for exercises table
+        // Search functionality
         document.getElementById('exercise-search').addEventListener('input', function() {
             const searchTerm = this.value.toLowerCase();
             const rows = document.querySelectorAll('.exercises-table tbody tr');

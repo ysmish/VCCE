@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{ exercise.title }} - C Programming Exercise</title>
-    <!-- External CSS and JS libraries -->
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.62.0/codemirror.min.js"></script>
@@ -13,7 +12,6 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
 </head>
 <body>
-    <!-- Header section with user info and logout button -->
     <div class="header">
         <h1>C Programming Exercise</h1>
         <div class="user-info">
@@ -22,9 +20,7 @@
         </div>
     </div>
 
-    <!-- Main exercise editor container -->
     <div class="exercise-editor-container">
-        <!-- Sidebar with exercise info and progress -->
         <div class="exercise-sidebar">
             <div class="exercise-info">
                 <h2>{{ exercise.title }}</h2>
@@ -69,7 +65,6 @@
             </div>
         </div>
 
-        <!-- Main editor and results section -->
         <div class="exercise-editor">
             <div class="editor-container">
                 <div class="editor-header">
@@ -105,7 +100,6 @@
         </div>
     </div>
 
-    <!-- JavaScript for editor and submission functionality -->
     <script>
         let editor;
         let exerciseId = "{{ exercise.id }}";
@@ -258,19 +252,65 @@
                             progressDetails.appendChild(newElem);
                         }
                     } else {
-                        showNotification('Some tests failed. Please review the results.', 'error');
+                        showNotification('Some tests failed. Try again!', 'error');
                     }
+                    
+                    document.querySelector('[data-tab="results-output"]').click();
+                } else {
+                    // Error case
+                    document.getElementById('compile-output').textContent = data.output || 'An error occurred.';
+                    document.querySelector('[data-tab="compile-output"]').click();
+                    showNotification('An error occurred', 'error');
                 }
             })
             .catch(error => {
                 loadingSpinner.style.display = 'none';
-                showNotification('Error submitting solution', 'error');
-                console.error('Error:', error);
+                document.getElementById('compile-output').textContent = 'Error: ' + error.message;
+                document.querySelector('[data-tab="compile-output"]').click();
+                showNotification('Request failed', 'error');
             })
             .finally(() => {
+                // Re-enable button
                 runButton.disabled = false;
                 runButton.innerHTML = '<i class="fas fa-play"></i> Run & Check';
+                
+                // Update attempts count
+                const attemptsElem = document.querySelector('.progress-details p:first-child');
+                const currentAttempts = parseInt(attemptsElem.textContent.split(': ')[1]) + 1;
+                attemptsElem.textContent = `Attempts: ${currentAttempts}`;
+                
+                // Update last attempt time
+                const now = new Date();
+                const formattedDate = now.toLocaleString();
+                
+                const lastAttemptElem = document.querySelector('.progress-details p:nth-child(2)');
+                if (lastAttemptElem && lastAttemptElem.textContent.startsWith('Last Attempt:')) {
+                    lastAttemptElem.textContent = `Last Attempt: ${formattedDate}`;
+                } else {
+                    const newElem = document.createElement('p');
+                    newElem.textContent = `Last Attempt: ${formattedDate}`;
+                    document.querySelector('.progress-details').appendChild(newElem);
+                }
             });
+        }
+        
+        function showNotification(message, type) {
+            const notification = document.createElement('div');
+            notification.className = `notification ${type}`;
+            notification.textContent = message;
+            
+            document.body.appendChild(notification);
+            
+            setTimeout(() => {
+                notification.classList.add('show');
+            }, 10);
+            
+            setTimeout(() => {
+                notification.classList.remove('show');
+                setTimeout(() => {
+                    document.body.removeChild(notification);
+                }, 300);
+            }, 3000);
         }
     </script>
     <script>

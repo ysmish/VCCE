@@ -1,18 +1,11 @@
-# =============================
-# Exercise Management Utilities for Collaborative C Code Editor
-# =============================
-# This file contains helper functions for creating, retrieving, and updating coding exercises and user progress.
-
 import json
 from datetime import datetime
 from models import db, Exercise, ExerciseProgress, User
 
-# =============================
-# Exercise Creation and Retrieval
-# =============================
 def create_exercise(title, description, difficulty, category, initial_code, solution_code, test_cases):
     """
-    Create a new exercise in the database.
+    Create a new exercise in the database
+    
     Args:
         title: Exercise title
         description: Exercise description (HTML allowed)
@@ -21,14 +14,17 @@ def create_exercise(title, description, difficulty, category, initial_code, solu
         initial_code: Initial code provided to user
         solution_code: Solution code
         test_cases: List of test cases (dict with 'input' and 'expected_output')
+    
     Returns:
         The created Exercise object
     """
     # Validate difficulty
     if difficulty not in ['easy', 'medium', 'hard']:
         raise ValueError("Difficulty must be one of: 'easy', 'medium', 'hard'")
+    
     # Convert test_cases to JSON
     test_cases_json = json.dumps(test_cases)
+    
     exercise = Exercise(
         title=title,
         description=description,
@@ -38,35 +34,65 @@ def create_exercise(title, description, difficulty, category, initial_code, solu
         solution_code=solution_code,
         test_cases=test_cases_json
     )
+    
     db.session.add(exercise)
     db.session.commit()
+    
     return exercise
 
 def get_all_exercises():
-    """Get all exercises in the database."""
+    """
+    Get all exercises
+    
+    Returns:
+        List of Exercise objects
+    """
     return Exercise.query.all()
 
 def get_exercise_by_id(exercise_id):
-    """Get exercise by ID. Returns Exercise object or None if not found."""
+    """
+    Get exercise by ID
+    
+    Args:
+        exercise_id: Exercise ID
+    
+    Returns:
+        Exercise object or None if not found
+    """
     return Exercise.query.get(exercise_id)
 
 def get_exercises_by_difficulty(difficulty):
-    """Get exercises by difficulty level ('easy', 'medium', 'hard')."""
+    """
+    Get exercises by difficulty level
+    
+    Args:
+        difficulty: Difficulty level ('easy', 'medium', 'hard')
+    
+    Returns:
+        List of Exercise objects
+    """
     return Exercise.query.filter_by(difficulty=difficulty).all()
 
 def get_exercises_by_category(category):
-    """Get exercises by category name."""
+    """
+    Get exercises by category
+    
+    Args:
+        category: Category name
+    
+    Returns:
+        List of Exercise objects
+    """
     return Exercise.query.filter_by(category=category).all()
 
-# =============================
-# User Progress Management
-# =============================
 def get_user_progress(user_id, exercise_id=None):
     """
-    Get user progress on exercises.
+    Get user progress on exercises
+    
     Args:
         user_id: User ID
         exercise_id: Optional exercise ID to get progress for a specific exercise
+    
     Returns:
         Dictionary mapping exercise_id to ExerciseProgress objects if exercise_id is None,
         or a single ExerciseProgress object if exercise_id is provided
@@ -76,16 +102,19 @@ def get_user_progress(user_id, exercise_id=None):
             user_id=user_id,
             exercise_id=exercise_id
         ).first()
+    
     progress_items = ExerciseProgress.query.filter_by(user_id=user_id).all()
     progress_dict = {item.exercise_id: item for item in progress_items}
     return progress_dict
 
 def get_or_create_progress(user_id, exercise_id):
     """
-    Get or create progress for a user on an exercise.
+    Get or create progress for a user on an exercise
+    
     Args:
         user_id: User ID
         exercise_id: Exercise ID
+    
     Returns:
         ExerciseProgress object
     """
@@ -93,10 +122,12 @@ def get_or_create_progress(user_id, exercise_id):
         user_id=user_id,
         exercise_id=exercise_id
     ).first()
+    
     if not progress:
         exercise = get_exercise_by_id(exercise_id)
         if not exercise:
             raise ValueError(f"Exercise with ID {exercise_id} not found")
+        
         progress = ExerciseProgress(
             user_id=user_id,
             exercise_id=exercise_id,
@@ -105,11 +136,13 @@ def get_or_create_progress(user_id, exercise_id):
         )
         db.session.add(progress)
         db.session.commit()
+    
     return progress
 
 def update_progress(user_id, exercise_id, status=None, user_code=None, increment_attempts=False, completed=False):
     """
-    Update user progress on an exercise.
+    Update user progress on an exercise
+    
     Args:
         user_id: User ID
         exercise_id: Exercise ID
@@ -117,36 +150,49 @@ def update_progress(user_id, exercise_id, status=None, user_code=None, increment
         user_code: Optional updated user code
         increment_attempts: Whether to increment the attempts counter
         completed: Whether to mark the exercise as completed
+    
     Returns:
         Updated ExerciseProgress object
     """
     progress = get_or_create_progress(user_id, exercise_id)
+    
     if status:
         progress.status = status
+    
     if user_code is not None:
         progress.user_code = user_code
+    
     if increment_attempts:
         progress.attempts += 1
         progress.last_attempt = datetime.utcnow()
+    
     if completed and progress.status != 'completed':
         progress.status = 'completed'
         progress.completed_at = datetime.utcnow()
+    
     db.session.commit()
     return progress
 
 def get_user_statistics(user_id):
     """
-    Get statistics about user's exercise progress.
+    Get statistics about user's exercise progress
+    
     Args:
         user_id: User ID
+    
     Returns:
         Dictionary with statistics
     """
+    # Get user
     user = User.query.get(user_id)
     if not user:
         raise ValueError(f"User with ID {user_id} not found")
+    
+    # Get all exercises and user progress
     all_exercises = get_all_exercises()
     progress_dict = get_user_progress(user_id)
+    
+    # Count by status
     total = len(all_exercises)
     completed = 0
     in_progress = 0

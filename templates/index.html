@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Collaborative C Code Editor</title>
-    <!-- External CSS and JS libraries -->
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.62.0/codemirror.min.js"></script>
@@ -13,7 +12,6 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
 </head>
 <body>
-    <!-- Header section with user info and logout button -->
     <div class="header">
         <h1>Collaborative C Code Editor</h1>
         <div class="user-info">
@@ -22,9 +20,7 @@
         </div>
     </div>
 
-    <!-- Main container for sidebar and content -->
     <div class="main-container">
-        <!-- Sidebar for active users -->
         <div class="sidebar">
             <div class="active-users">
                 <h3>Connected Users</h3>
@@ -33,9 +29,7 @@
             </div>
         </div>
 
-        <!-- Content container for editor and results -->
         <div class="content-container">
-            <!-- Editor container with options and actions -->
             <div class="editor-container">
                 <div class="editor-options">
                     <div class="language-info">
@@ -56,7 +50,6 @@
                 <textarea id="editor"></textarea>
             </div>
 
-            <!-- Results container for execution output -->
             <div class="results-container" style="display: none;">
                 <div class="result-header">
                     <h3>Execution Results</h3>
@@ -78,7 +71,6 @@
         </div>
     </div>
 
-    <!-- Main client script -->
     <script src="{{ url_for('static', filename='script.js') }}"></script>
 </body>
 </html>
