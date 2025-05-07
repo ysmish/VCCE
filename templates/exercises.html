@@ -4,10 +4,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Coding Exercises - Collaborative C Code Editor</title>
+    <!-- External CSS -->
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
 </head>
 <body>
+    <!-- Header section with user info and logout button -->
     <div class="header">
         <h1>Collaborative C Code Editor</h1>
         <div class="user-info">
@@ -16,7 +18,9 @@
         </div>
     </div>
 
+    <!-- Main exercises container -->
     <div class="exercises-container">
+        <!-- Header with title and back button -->
         <div class="exercises-header">
             <h2>C Programming Exercises</h2>
             <a href="{{ url_for('dashboard') }}" class="btn back-btn">
@@ -24,6 +28,7 @@
             </a>
         </div>
 
+        <!-- Filter section for difficulty and status -->
         <div class="filters">
             <div class="filter-group">
                 <label>Difficulty:</label>
@@ -41,6 +46,7 @@
             </div>
         </div>
 
+        <!-- Exercise grid displaying all exercises -->
         <div class="exercise-grid">
             {% for exercise in exercises %}
                 {% set progress = progress_dict.get(exercise.id) %}
@@ -72,8 +78,9 @@
         </div>
     </div>
 
+    <!-- JavaScript for filtering exercises -->
     <script>
-        // Filter functionality
+        // Filter functionality for difficulty
         document.querySelectorAll('.filter-btn[data-filter]').forEach(button => {
             button.addEventListener('click', function() {
                 // Update active state
@@ -89,6 +96,7 @@
             });
         });
 
+        // Filter functionality for status
         document.querySelectorAll('.filter-btn[data-status]').forEach(button => {
             button.addEventListener('click', function() {
                 // Update active state
@@ -104,6 +112,7 @@
             });
         });
 
+        // Function to filter exercises based on difficulty and status
         function filterExercises(difficulty, status) {
             document.querySelectorAll('.exercise-card').forEach(card => {
                 const cardDifficulty = card.getAttribute('data-difficulty');

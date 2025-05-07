@@ -344,25 +344,45 @@ body {
     font-size: 13px;
 }
 
-/* CodeMirror syntax highlighting: VSCode/Monokai/One Dark Hybrid */
-.cm-s-default .cm-keyword { color: #b39ddb !important; font-weight: 600 !important; } /* soft purple */
+/* =========================
+   Custom CodeMirror Syntax Highlighting (Purple Theme)
+   ========================= */
+
+/* Keywords and operators (soft purple) */
+.cm-s-default .cm-keyword { color: #b39ddb !important; font-weight: 600 !important; } /* e.g., int, if, else */
 .cm-s-default .cm-operator { color: #b39ddb !important; }
-.cm-s-default .cm-variable { color: #fff !important; }
-.cm-s-default .cm-variable-2 { color: #fff !important; }
-.cm-s-default .cm-variable-3 { color: #563cbc !important; }
-.cm-s-default .cm-string { color: #e88de5 !important; } /* green */
-.cm-s-default .cm-number { color: #f78c6c !important; } /* orange */
+
+/* Variables */
+.cm-s-default .cm-variable { color: #fff !important; } /* regular variables */
+.cm-s-default .cm-variable-2 { color: #fff !important; } /* secondary variables (e.g., function params) */
+.cm-s-default .cm-variable-3 { color: #563cbc !important; } /* tertiary variables (e.g., special identifiers, purple) */
+
+/* Strings and numbers */
+.cm-s-default .cm-string { color: #e88de5 !important; } /* string literals, pinkish purple */
+.cm-s-default .cm-number { color: #f78c6c !important; } /* numbers, orange */
+
+/* Comments */
 .cm-s-default .cm-comment { color: #7c7c8a !important; font-style: italic !important; } /* muted purple-gray */
-.cm-s-default .cm-builtin { color: #9575cd !important; } /* purple */
-.cm-s-default .cm-def { color: #7c4dff !important; font-weight: 600 !important; } /* vivid purple */
-.cm-s-default .cm-meta { color: #b388ff !important; } /* light purple */
-.cm-s-default .cm-tag { color: #ea80fc !important; } /* pinkish purple */
-.cm-s-default .cm-attribute { color: #c3e88d !important; }
-.cm-s-default .cm-qualifier { color: #b39ddb !important; }
-.cm-s-default .cm-property { color: #b388ff !important; }
-.cm-s-default .cm-header { color: #7c4dff !important; font-weight: bold !important; }
-.cm-s-default .cm-atom { color: #f78c6c !important; }
-.cm-s-default .cm-error { color: #e06c75 !important; background: #2c0100 !important; }
+
+/* Builtins, function/class/def names, and meta */
+.cm-s-default .cm-builtin { color: #9575cd !important; } /* built-in functions, purple */
+.cm-s-default .cm-def { color: #7c4dff !important; font-weight: 600 !important; } /* function/class/def names, vivid purple */
+.cm-s-default .cm-meta { color: #b388ff !important; } /* meta/decorators, light purple */
+
+/* Tags, attributes, and properties */
+.cm-s-default .cm-tag { color: #ea80fc !important; } /* tags, pinkish purple */
+.cm-s-default .cm-attribute { color: #c3e88d !important; } /* attributes, green */
+.cm-s-default .cm-property { color: #b388ff !important; } /* properties, light purple */
+
+/* Qualifiers and headers */
+.cm-s-default .cm-qualifier { color: #b39ddb !important; } /* qualifiers, soft purple */
+.cm-s-default .cm-header { color: #7c4dff !important; font-weight: bold !important; } /* headers, vivid purple */
+
+/* Atoms and errors */
+.cm-s-default .cm-atom { color: #f78c6c !important; } /* atoms, orange */
+.cm-s-default .cm-error { color: #e06c75 !important; background: #2c0100 !important; } /* errors, red on dark */
+
+/* End of CodeMirror custom theme */
 
 /* Sidebar and Active Users Styles */
 .sidebar {

@@ -4,11 +4,13 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>System Statistics - Admin - Collaborative C Code Editor</title>
+    <!-- External CSS and icon libraries -->
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.7.0/chart.min.js"></script>
 </head>
 <body>
+    <!-- Header section with admin info and navigation -->
     <div class="header">
         <h1>Admin Dashboard <span class="project-subtitle">Collaborative C Code Editor</span></h1>
         <div class="user-info">
@@ -18,7 +20,9 @@
         </div>
     </div>
 
+    <!-- Main admin container with sidebar and content -->
     <div class="admin-container">
+        <!-- Sidebar navigation for admin pages -->
         <div class="admin-sidebar">
             <div class="admin-nav">
                 <h3>Administration</h3>
@@ -31,13 +35,16 @@
             </div>
         </div>
 
+        <!-- Main content area for system statistics -->
         <div class="admin-content">
             <div class="admin-header">
                 <h2>System Statistics</h2>
             </div>
             
+            <!-- Statistics cards and charts -->
             <div class="stats-container">
                 <div class="stats-row">
+                    <!-- User statistics card -->
                     <div class="stats-card">
                         <div class="stats-card-header">
                             <h3>User Statistics</h3>
@@ -50,6 +57,7 @@
                         </div>
                     </div>
                     
+                    <!-- Exercise statistics card with chart -->
                     <div class="stats-card">
                         <div class="stats-card-header">
                             <h3>Exercise Statistics</h3>
@@ -66,6 +74,7 @@
                 </div>
                 
                 <div class="stats-row">
+                    <!-- Compilation statistics card with chart -->
                     <div class="stats-card">
                         <div class="stats-card-header">
                             <h3>Compilation Statistics</h3>
@@ -94,11 +103,11 @@
 
     <script>
     document.addEventListener('DOMContentLoaded', function() {
-        // Simplified chart creation
+        // Chart.js chart creation for admin statistics
         const exerciseCtx = document.getElementById('exercisesByDifficultyChart').getContext('2d');
         const compileCtx = document.getElementById('compilationSuccessChart').getContext('2d');
         
-        // Create basic charts with hardcoded values (will be replaced with actual data when rendered)
+        // Create doughnut chart for exercises by difficulty
         new Chart(exerciseCtx, {
             type: 'doughnut',
             data: {
@@ -118,6 +127,7 @@
             }
         });
         
+        // Create pie chart for compilation success rate
         new Chart(compileCtx, {
             type: 'pie',
             data: {

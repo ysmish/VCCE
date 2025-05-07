@@ -4,8 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dashboard - Collaborative C Code Editor</title>
+    <!-- External CSS -->
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
+    <!-- Inline styles for dashboard layout and design -->
     <style>
         body {
             min-height: 100vh;
@@ -122,7 +124,9 @@
     </style>
 </head>
 <body>
+    <!-- Background accent for visual appeal -->
     <div class="dashboard-bg-accent"></div>
+    <!-- Header section with user info and logout button -->
     <div class="header">
         <h1 style="font-size:2rem; background:var(--gradient-primary);-webkit-background-clip:text;-webkit-text-fill-color:transparent;letter-spacing:-0.03em;">Collaborative C Code Editor</h1>
         <div class="user-info">
@@ -131,7 +135,9 @@
         </div>
     </div>
 
+    <!-- Main dashboard container -->
     <div class="dashboard-container">
+        <!-- My Projects section -->
         <div class="dashboard-section">
             <div class="section-header">
                 <h2><i class="fas fa-folder-open"></i> My Projects</h2>
@@ -161,6 +167,7 @@
             </div>
         </div>
 
+        <!-- Shared Projects section -->
         <div class="dashboard-section">
             <div class="section-header">
                 <h2><i class="fas fa-users"></i> Shared Projects</h2>
@@ -187,6 +194,7 @@
             </div>
         </div>
 
+        <!-- Coding Exercises section -->
         <div class="dashboard-section">
             <div class="section-header">
                 <h2><i class="fas fa-dumbbell"></i> Coding Exercises</h2>

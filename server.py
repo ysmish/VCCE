@@ -1,3 +1,9 @@
+# =============================
+# Collaborative C Code Editor - Main Server
+# =============================
+# This file contains the main Flask app, SocketIO handlers, and all core logic for user authentication,
+# project management, code execution, and real-time collaboration.
+
 from flask import Flask, render_template, request, redirect, url_for, session, jsonify, flash
 from flask_socketio import SocketIO, emit, join_room, leave_room
 import os
@@ -14,8 +20,10 @@ from models import User, Project, Document, Exercise, ExerciseProgress, Compilat
 from exercise_manager import create_sample_exercises
 from admin import admin_bp
 
+# =============================
+# Environment and App Setup
+# =============================
 load_dotenv()
-
 logging.basicConfig(level=logging.INFO)
 
 app.config['SECRET_KEY'] = os.getenv("SECRET_KEY", "INSECURE_DEFAULT_KEY")
@@ -27,8 +35,10 @@ allowed_origins = os.getenv("ALLOWED_ORIGINS", "*")
 bcrypt = Bcrypt(app)
 socketio = SocketIO(app, cors_allowed_origins=allowed_origins)
 
-# Track connected users by session ID
-connected_users = {}
+# =============================
+# Globals for User/Project State
+# =============================
+connected_users = {}  # session_id -> user info
 active_projects = {}  # Project ID -> Document Content
 
 # Set resource limits for child processes

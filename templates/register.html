@@ -4,30 +4,39 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Register</title>
+    <!-- External CSS -->
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
+    <!-- Authentication container -->
     <div class="auth-container">
+        <!-- Registration form -->
         <div class="auth-form">
             <h2>Register</h2>
             <form action="{{ url_for('register') }}" method="post">
+                <!-- Username input -->
                 <div class="form-group">
                     <label for="username">Username:</label>
                     <input type="text" id="username" name="username" required>
                 </div>
+                <!-- Email input -->
                 <div class="form-group">
                     <label for="email">Email:</label>
                     <input type="email" id="email" name="email" required>
                 </div>
+                <!-- Password input -->
                 <div class="form-group">
                     <label for="password">Password:</label>
                     <input type="password" id="password" name="password" required>
                 </div>
+                <!-- Submit button -->
                 <button type="submit" class="btn">Register</button>
             </form>
+            <!-- Error message display -->
             {% if error %}
                 <div class="error-message">{{ error }}</div>
             {% endif %}
+            <!-- Login link -->
             <div class="auth-links">
                 Already have an account? <a href="{{ url_for('login') }}">Login here</a>
             </div>

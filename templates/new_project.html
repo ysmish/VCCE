@@ -4,9 +4,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Create New Project - Collaborative C Code Editor</title>
+    <!-- External CSS -->
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
+    <!-- Header section with user info and logout button -->
     <div class="header">
         <h1>Collaborative C Code Editor</h1>
         <div class="user-info">
@@ -15,19 +17,23 @@
         </div>
     </div>
 
+    <!-- Form container for new project creation -->
     <div class="form-container">
         <div class="form-card">
             <h2>Create New Project</h2>
             <form action="{{ url_for('new_project') }}" method="post">
+                <!-- Project name input -->
                 <div class="form-group">
                     <label for="name">Project Name:</label>
                     <input type="text" id="name" name="name" required>
                 </div>
+                <!-- Form buttons -->
                 <div class="form-buttons">
                     <a href="{{ url_for('dashboard') }}" class="btn cancel-btn">Cancel</a>
                     <button type="submit" class="btn create-btn">Create Project</button>
                 </div>
             </form>
+            <!-- Error message display -->
             {% if error %}
                 <div class="error-message">{{ error }}</div>
             {% endif %}

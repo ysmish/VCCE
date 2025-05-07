@@ -4,10 +4,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Admin Dashboard - Collaborative C Code Editor</title>
+    <!-- External CSS and icon libraries -->
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
 </head>
 <body>
+    <!-- Header section with admin info and navigation -->
     <div class="header">
         <h1>Admin Dashboard <span class="project-subtitle">Collaborative C Code Editor</span></h1>
         <div class="user-info">
@@ -17,7 +19,9 @@
         </div>
     </div>
 
+    <!-- Main admin container with sidebar and content -->
     <div class="admin-container">
+        <!-- Sidebar navigation for admin pages -->
         <div class="admin-sidebar">
             <div class="admin-nav">
                 <h3>Administration</h3>
@@ -30,11 +34,13 @@
             </div>
         </div>
 
+        <!-- Main content area for admin dashboard -->
         <div class="admin-content">
             <div class="admin-header">
                 <h2>System Overview</h2>
             </div>
             
+            <!-- Stats cards for quick overview -->
             <div class="stats-cards">
                 <div class="stat-card">
                     <div class="stat-icon">
@@ -67,7 +73,9 @@
                 </div>
             </div>
             
+            <!-- Panels for recent users and compilations -->
             <div class="admin-panels">
+                <!-- Recent Users panel -->
                 <div class="admin-panel">
                     <div class="panel-header">
                         <h3>Recent Users</h3>
@@ -103,6 +111,7 @@
                     </div>
                 </div>
                 
+                <!-- Recent Compilations panel -->
                 <div class="admin-panel">
                     <div class="panel-header">
                         <h3>Recent Compilations</h3>
