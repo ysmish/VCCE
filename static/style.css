@@ -1,3 +1,40 @@
+/* Modern Dark Theme */
+:root {
+    --bg-main: #0a0a0a;
+    --bg-elevated: #28252b;
+    --bg-card: #1e1e22;
+    --bg-chat: #18181b;
+    --bg-sidebar: #131316;
+    --border: #23232b;
+    --text-main: #e5e5e5;
+    --text-muted: #8a8a8a;
+    --text-heading: #fff;
+    --accent: #8b5cf6;
+    --accent2: #6366f1;
+    --accent-gradient: linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%);
+    --danger: #ef4444;
+    --success: #22d3ee;
+    --warning: #f59e0b;
+    
+    /* Accent colors */
+    --primary-color: #8b5cf6;
+    --primary-hover: #7c3aed;
+    --secondary-color: #06b6d4;
+    --secondary-hover: #0891b2;
+    --danger-color: #ef4444;
+    --danger-hover: #dc2626;
+    --warning-color: #f59e0b;
+    --warning-hover: #d97706;
+    
+    /* UI elements */
+    --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.3);
+    --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.4);
+    --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.5);
+}
+
+/* Import modern fonts */
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
+
 /* General Styles */
 * {
     margin: 0;
