@@ -41,6 +41,33 @@ def set_resource_limits():
     # Limit file size creation (1MB)
     resource.setrlimit(resource.RLIMIT_FSIZE, (1024 * 1024, 1024 * 1024))
 
+# Add this function to detect potentially dangerous code
+def check_for_dangerous_code(code):
+    """
+    Check for potentially dangerous code patterns that could be used maliciously.
+    Returns True if dangerous patterns are detected, False otherwise.
+    """
+    dangerous_patterns = [
+        r'system\s*\(',       # system() calls to execute shell commands
+        r'popen\s*\(',        # popen() calls for creating processes
+        r'fopen\s*\(',        # File operations that could write to the filesystem
+        r'fwrite\s*\(',       # File write operations
+        r'fprintf\s*\(',      # File write operations
+        r'exec[lv][pe]\s*\(', # exec family of functions
+        r'fork\s*\(',         # Process creation
+        r'unlink\s*\(',       # File deletion
+        r'remove\s*\(',       # File deletion
+        r'rename\s*\(',       # File renaming
+        r'mkdir\s*\(',        # Directory creation
+        r'rmdir\s*\('         # Directory removal
+    ]
+    
+    import re
+    for pattern in dangerous_patterns:
+        if re.search(pattern, code):
+            return True
+    return False
+
 # The implementation function for executing code
 def execute_code_impl(code, project_id=None, document_id=None, exercise_id=None, user_input="", compile_only=False):
     """
@@ -66,6 +93,14 @@ def execute_code_impl(code, project_id=None, document_id=None, exercise_id=None,
         # Write code to file
         with open(source_path, 'w', encoding='utf-8') as f:
             f.write(code)
+        
+        # Check for potentially dangerous code
+        if check_for_dangerous_code(code):
+            return {
+                "success": False,
+                "stage": "security_check",
+                "output": "Your code contains potentially dangerous system or file operations that are not allowed for security reasons. Please avoid using system(), popen(), file I/O operations, and other similar functions."
+            }
         
         # Compile the code with standard library paths
         compile_command = [
@@ -427,6 +462,14 @@ def analyze_memory():
         with open(source_path, 'w', encoding='utf-8') as f:
             f.write(code)
         
+        # Check for potentially dangerous code
+        if check_for_dangerous_code(code):
+            return jsonify({
+                "success": False,
+                "stage": "security_check",
+                "output": "Your code contains potentially dangerous system or file operations that are not allowed for security reasons. Please avoid using system(), popen(), file I/O operations, and other similar functions."
+            })
+        
         # Compile the code with debug info
         compile_result = subprocess.run(
             ["gcc", source_path, "-o", exec_path, "-g", "-std=c11", "-I/usr/include", "-I/usr/local/include", "-lm"],
@@ -531,6 +574,15 @@ def analyze_memory():
 def execute_test_cases(code, test_cases_json):
     test_cases = json.loads(test_cases_json)
     results = []
+    
+    # Check for potentially dangerous code first
+    if check_for_dangerous_code(code):
+        return {
+            "success": False,
+            "stage": "security_check",
+            "output": "Your code contains potentially dangerous system or file operations that are not allowed for security reasons. Please avoid using system(), popen(), file I/O operations, and other similar functions.",
+            "results": []
+        }
     
     # Compile the code using our implementation function
     compile_result = execute_code_impl(code, compile_only=True)
