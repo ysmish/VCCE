@@ -27,13 +27,17 @@ def index():
     recent_users = User.query.order_by(User.created_at.desc()).limit(5).all()
     recent_compilations = CompilationHistory.query.order_by(CompilationHistory.compiled_at.desc()).limit(5).all()
     
+    recent_user_ids = [c.user_id for c in recent_compilations]
+    user_map = {u.id: u.username for u in User.query.filter(User.id.in_(recent_user_ids)).all()}
+    
     return render_template(
         'admin/index.html',
         user_count=user_count,
         exercise_count=exercise_count,
         compilation_count=compilation_count,
         recent_users=recent_users,
-        recent_compilations=recent_compilations
+        recent_compilations=recent_compilations,
+        user_map=user_map
     )
 
 @admin_bp.route('/users')
