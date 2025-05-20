@@ -256,7 +256,8 @@ def register():
         db.session.commit()
         flash('Your account has been created!', 'success')
         return redirect(url_for('login'))
-
+    
+    # Handle GET request
     return render_template('register.html')
 
 
@@ -301,6 +302,12 @@ def dashboard():
     
     user_id = session['user_id']
     user = User.query.get(user_id)
+    
+    # If user not found, clear session and redirect to login
+    if not user:
+        session.clear()
+        flash('Your session has expired. Please log in again.', 'error')
+        return redirect(url_for('login'))
     
     # Get user's projects
     owned_projects = Project.query.filter_by(owner_id=user_id).all()
@@ -1082,8 +1089,9 @@ def handle_request_sync():
         emit("document", {"text": active_projects[project_id]})
     
 if __name__ == "__main__":
-    print("Starting Collaborative Code Editor server...")
+    print("Starting Collaborative Code Editor server with HTTPS...")
     with app.app_context():
         db.create_all()
         create_sample_exercises()
-    socketio.run(app, host="0.0.0.0", port=5001, debug=True)
+    context = ('cert.pem', 'key.pem')  # Path to your SSL certificate and key
+    socketio.run(app, host="0.0.0.0", port=5001, debug=True, ssl_context=context)
