@@ -257,8 +257,6 @@ def register():
         flash('Your account has been created!', 'success')
         return redirect(url_for('login'))
 
-    return render_template('register.html')
-
 
 @app.route("/login", methods=['GET', 'POST'])
 def login():
@@ -1082,8 +1080,9 @@ def handle_request_sync():
         emit("document", {"text": active_projects[project_id]})
     
 if __name__ == "__main__":
-    print("Starting Collaborative Code Editor server...")
+    print("Starting Collaborative Code Editor server with HTTPS...")
     with app.app_context():
         db.create_all()
         create_sample_exercises()
-    socketio.run(app, host="0.0.0.0", port=5001, debug=True)
+    context = ('cert.pem', 'key.pem')  # Path to your SSL certificate and key
+    socketio.run(app, host="0.0.0.0", port=5001, debug=True, ssl_context=context)
