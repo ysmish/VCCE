@@ -256,6 +256,9 @@ def register():
         db.session.commit()
         flash('Your account has been created!', 'success')
         return redirect(url_for('login'))
+    
+    # Handle GET request
+    return render_template('register.html')
 
 
 @app.route("/login", methods=['GET', 'POST'])
@@ -299,6 +302,12 @@ def dashboard():
     
     user_id = session['user_id']
     user = User.query.get(user_id)
+    
+    # If user not found, clear session and redirect to login
+    if not user:
+        session.clear()
+        flash('Your session has expired. Please log in again.', 'error')
+        return redirect(url_for('login'))
     
     # Get user's projects
     owned_projects = Project.query.filter_by(owner_id=user_id).all()

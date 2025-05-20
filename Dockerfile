@@ -23,5 +23,10 @@ COPY . .
 # Expose the port the application runs on
 EXPOSE 5001
 
+# Create a startup script
+RUN echo '#!/bin/bash\n\
+python -c "from models import db, app; from exercise_manager import create_sample_exercises; app.app_context().push(); db.create_all(); create_sample_exercises()"\n\
+python server.py' > /app/start.sh && chmod +x /app/start.sh
+
 # Command to run the application
-CMD ["python", "server.py"]
+CMD ["/app/start.sh"]
