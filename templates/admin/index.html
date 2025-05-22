@@ -121,8 +121,7 @@
                                 {% for compilation in recent_compilations %}
                                 <tr>
                                     <td>{{ compilation.id }}</td>
-                                    <td>{{ User.query.get(compilation.user_id).username }}</td>
-                                    <td>{{ compilation.status }}</td>
+                                    <td>{{ user_map.get(compilation.user_id, 'Unknown User') }}</td>                                    <td>{{ compilation.status }}</td>
                                     <td>{{ compilation.compiled_at.strftime('%Y-%m-%d %H:%M') }}</td>
                                 </tr>
                                 {% else %}
