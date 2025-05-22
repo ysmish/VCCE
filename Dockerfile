@@ -29,4 +29,4 @@ python -c "from models import db, app; from exercise_manager import create_sampl
 python server.py' > /app/start.sh && chmod +x /app/start.sh
 
 # Command to run the application
-CMD ["/app/start.sh"]
+CMD ["python", "server.py"]

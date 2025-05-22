@@ -1093,5 +1093,33 @@ if __name__ == "__main__":
     with app.app_context():
         db.create_all()
         create_sample_exercises()
-    context = ('cert.pem', 'key.pem')  # Path to your SSL certificate and key
-    socketio.run(app, host="0.0.0.0", port=5001, debug=True, ssl_context=context)
+    
+    # Check if certificate files exist
+    import os
+    cert_file = 'certs/cert.pem'
+    key_file = 'certs/key.pem'
+    
+    # Try different certificate paths
+    if not os.path.exists(cert_file):
+        cert_file = 'cert.pem'
+        key_file = 'key.pem'
+    
+    if os.path.exists(cert_file) and os.path.exists(key_file):
+        print(f"Found certificates: {cert_file}, {key_file}")
+        try:
+            # Correct way to pass SSL context to SocketIO
+            context = (cert_file, key_file)
+            print("Starting with SSL context...")
+            socketio.run(app, 
+                        host="0.0.0.0", 
+                        port=5001, 
+                        debug=True, 
+                        ssl_context=context)
+        except Exception as e:
+            print(f"SSL startup failed: {e}")
+            print("Falling back to HTTP...")
+            socketio.run(app, host="0.0.0.0", port=5001, debug=True)
+    else:
+        print(f"Certificate files not found. Checked: {cert_file}, {key_file}")
+        print("Starting with HTTP...")
+        socketio.run(app, host="0.0.0.0", port=5001, debug=True)
