@@ -4,7 +4,7 @@ services:
     ports:
       - "5001:5001"
     volumes:
-      - W:/sara/VCCE:/app
+      - .:/app
     environment:
       - DATABASE_URL=postgresql://postgres:postgres@db:5432/code_editor
       - SECRET_KEY=your_secure_secret_key_here
