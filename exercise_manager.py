@@ -1,3 +1,4 @@
+# exercise_manager.py
 import json
 from datetime import datetime
 from models import db, Exercise, ExerciseProgress, User

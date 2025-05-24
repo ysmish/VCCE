@@ -1,3 +1,4 @@
+// static/script.js
 const socket = io();
 let editor;
 let activeUsers = new Map();

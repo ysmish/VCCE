@@ -1,3 +1,4 @@
+# admin.py
 from flask import Blueprint, render_template, request, redirect, url_for, flash, session, jsonify
 from models import db, User, Exercise, CompilationHistory
 from exercise_manager import create_exercise, get_all_exercises, get_exercise_by_id
