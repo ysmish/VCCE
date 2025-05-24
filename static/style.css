@@ -354,7 +354,7 @@
   }
   
   #current-username:before {
-    content: "👤";
+    content: "";
     margin-right: 0.5rem;
     font-size: 0.9rem;
   }
@@ -583,19 +583,19 @@
   }
   
   .project-info h3:before {
-    content: "📂";
+    content: "";
     margin-right: 0.5rem;
     font-size: 1.125rem;
   }
   
   .active-users h3:before {
-    content: "👥";
+    content: "";
     margin-right: 0.5rem;
     font-size: 1.125rem;
   }
   
   .chat-container h3:before {
-    content: "💬";
+    content: "";
     margin-right: 0.5rem;
     font-size: 1.125rem;
   }
@@ -1284,18 +1284,15 @@
   }
   
   .notification.success:before {
-    content: "✓";
-    margin-right: 0.625rem;
+    content: "";
   }
   
   .notification.error:before {
-    content: "✗";
-    margin-right: 0.625rem;
+    content: "";
   }
   
   .notification.info:before {
-    content: "ℹ";
-    margin-right: 0.625rem;
+    content: "";
   }
   
   /* Auth styles - Enhanced Professional Design */
@@ -1473,6 +1470,21 @@
     padding: 1.5rem;
     max-width: 1400px;
     margin: 0 auto;
+    position: relative;
+    overflow: hidden;
+    min-height: calc(100vh - 70px);
+    background: none;
+  }
+  
+  body.dashboard-bg {
+    min-height: 100vh;
+    background: linear-gradient(135deg, var(--primary-dark) 0%, var(--primary) 60%, var(--accent) 100%);
+    background-attachment: fixed;
+  }
+  
+  .dashboard-container::before,
+  .dashboard-container::after {
+    display: none !important;
   }
   
   .dashboard-section {
@@ -1489,11 +1501,33 @@
     padding: 1.5rem;
     border: 1px solid var(--border-color);
     transition: transform var(--transition-normal), box-shadow var(--transition-normal);
+    position: relative;
+    overflow: hidden;
+    z-index: 1;
+  }
+  
+  .dashboard-section::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: linear-gradient(
+      to right,
+      transparent,
+      var(--primary-light),
+      var(--accent),
+      var(--primary-light),
+      transparent
+    );
+    opacity: 0.5;
   }
   
   .dashboard-section:hover {
     transform: translateY(-5px);
     box-shadow: var(--shadow-lg), var(--glow-subtle);
+    border-color: rgba(124, 58, 237, 0.3);
   }
   
   .section-header {
@@ -1532,15 +1566,15 @@
   }
   
   .dashboard-section:nth-child(1) .section-header h2:before {
-    content: "📂";
+    content: "";
   }
   
   .dashboard-section:nth-child(2) .section-header h2:before {
-    content: "👥";
+    content: "";
   }
   
   .dashboard-section:nth-child(3) .section-header h2:before {
-    content: "🧪";
+    content: "";
   }
   
   .project-list, .exercise-list {
@@ -2016,17 +2050,17 @@
   }
   
   .test-results-table tr.passed td.status:before {
-    content: "✓";
+    content: "";
     font-weight: bold;
   }
   
   .test-results-table tr.failed td.status:before {
-    content: "✗";
+    content: "";
     font-weight: bold;
   }
   
   .test-results-table tr.timeout td.status:before {
-    content: "⏱";
+    content: "";
   }
   
   /* User input container styles - Cleaner Interface */
